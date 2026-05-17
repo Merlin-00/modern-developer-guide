@@ -1,12 +1,15 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { NavbarComponent } from './shared/ui/navbar/navbar.component';
+import { FooterComponent } from './shared/ui/footer/footer.component';
+import { ChatbotComponent } from './features/chatbot/chatbot.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, NavbarComponent, FooterComponent, ChatbotComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-export class App {
-  protected readonly title = signal('modern-developer-guide');
+export class AppComponent {
+  title = 'modern-developer-guide';
 }
