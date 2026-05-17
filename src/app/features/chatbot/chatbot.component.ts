@@ -1,189 +1,217 @@
-import { Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  ViewChild,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, MessageCircle, X, Send, Bot, User } from 'lucide-angular';
+import { LucideAngularModule } from 'lucide-angular';
 import { IaChatbotService, ChatMessage } from '../../core/services/ia-chatbot.service';
 
+/**
+ * ChatbotComponent — Widget flottant d'assistance IA.
+ * Accessible via un bouton fixe en bas à droite.
+ * Connecté à Google Gemini via IaChatbotService.
+ */
 @Component({
   selector: 'app-chatbot',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, LucideAngularModule],
   template: `
-    <!-- Bouton flottant -->
+    <!-- Bouton d'ouverture flottant -->
     @if (!isOpen()) {
-      <button 
-        (click)="toggleChat()"
-        class="fixed bottom-6 right-6 p-4 bg-blue-600 text-white rounded-full shadow-xl hover:bg-blue-700 hover:scale-110 transition-all duration-300 z-50 flex items-center justify-center focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800"
-        aria-label="Ouvrir le Chatbot IA">
-        <lucide-icon name="message-circle" [size]="28"></lucide-icon>
-      </button>
+      @if (isMinimized()) {
+        <!-- Version réduite (icône "inférieure" < très discrète) -->
+        <button
+          (click)="isMinimized.set(false)"
+          class="fixed right-0 top-1/2 -translate-y-1/2 w-4 h-12 bg-blue-600/10 hover:bg-blue-600/80 text-blue-600/50 hover:text-white rounded-l-md flex items-center justify-center transition-all duration-300 hover:w-6 z-50 focus:outline-none cursor-pointer group"
+          title="Développer l'assistant IA"
+          aria-label="Développer l'assistant IA">
+          <lucide-icon name="chevron-left" [size]="12" class="transition-transform group-hover:scale-110"></lucide-icon>
+        </button>
+      } @else {
+        <!-- Version standard (sans shadow, avec bouton de fermeture discret) -->
+        <div class="fixed right-0 top-1/2 -translate-y-1/2 flex items-center z-50 group">
+          <!-- Bouton principal -->
+          <button
+            (click)="open()"
+            class="w-12 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-l-2xl flex items-center justify-center transition-all duration-300 hover:w-14 hover:scale-102 focus:outline-none focus:ring-4 focus:ring-blue-500/30 cursor-pointer"
+            aria-label="Ouvrir le Chatbot IA">
+            <lucide-icon name="message-circle" [size]="24"></lucide-icon>
+          </button>
+          
+          <!-- Bouton de réduction discret (masqué par défaut, apparaît au survol) -->
+          <button
+            (click)="isMinimized.set(true)"
+            class="absolute -top-3 right-1 w-5 h-5 bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-full flex items-center justify-center border border-gray-200 dark:border-gray-700 transition-all shadow-sm opacity-0 group-hover:opacity-100 hover:scale-110 cursor-pointer"
+            title="Réduire le bouton"
+            aria-label="Réduire le bouton">
+            <lucide-icon name="x" [size]="10"></lucide-icon>
+          </button>
+        </div>
+      }
     }
 
     <!-- Fenêtre de chat -->
     @if (isOpen()) {
-      <div 
-        class="fixed bottom-6 right-6 w-96 max-w-[calc(100vw-3rem)] h-[500px] max-h-[calc(100vh-6rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden border border-gray-200 dark:border-gray-800">
-      
-      <!-- Header -->
-      <div class="p-4 bg-blue-600 text-white flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-            <lucide-icon name="bot" [size]="20"></lucide-icon>
-          </div>
-          <div>
-            <h3 class="font-bold">Mentor IA</h3>
-            <p class="text-xs text-blue-100">En ligne</p>
-          </div>
-        </div>
-        <button (click)="toggleChat()" class="text-white/80 hover:text-white transition-colors hover:rotate-90 duration-300" aria-label="Fermer le chat">
-          <lucide-icon name="x" [size]="24"></lucide-icon>
-        </button>
-      </div>
+      <div class="fixed z-50 bg-white dark:bg-gray-950 border-l border-gray-200 dark:border-gray-800 md:border md:border-gray-200 md:dark:border-gray-800 flex flex-col overflow-hidden shadow-2xl transition-all duration-300 md:right-6 md:top-1/2 md:-translate-y-1/2 md:w-96 md:h-[520px] md:max-h-[calc(100vh-5rem)] md:rounded-2xl right-0 top-0 w-[85vw] max-w-[360px] h-[100dvh]"
+           role="dialog" aria-label="Chat avec le Mentor IA">
 
-      <!-- Messages -->
-      <div #scrollContainer class="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-[#121212] space-y-4">
-        
-        <!-- Message de bienvenue -->
-        <div class="flex gap-3 max-w-[85%]">
-          <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400 flex-shrink-0 flex items-center justify-center">
-            <lucide-icon name="bot" [size]="18"></lucide-icon>
-          </div>
-          <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300">
-            Bonjour ! Je suis votre mentor IA. Comment puis-je vous aider avec votre code aujourd'hui ?
-          </div>
-        </div>
-
-        <!-- Historique des messages -->
-        @for (msg of messages(); track $index) {
-          <div class="flex gap-3" [class.flex-row-reverse]="msg.role === 'user'">
-            <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center"
-                 [class.bg-blue-600]="msg.role === 'user'" [class.text-white]="msg.role === 'user'"
-                 [class.bg-blue-100]="msg.role === 'model'" [class.text-blue-600]="msg.role === 'model'"
-                 [class.dark:bg-blue-500]="msg.role === 'user'"
-                 [class.dark:bg-blue-900]="msg.role === 'model'" [class.dark:text-blue-400]="msg.role === 'model'">
-              <lucide-icon [name]="msg.role === 'user' ? 'user' : 'bot'" [size]="18"></lucide-icon>
-            </div>
-            
-            <div class="max-w-[85%] p-3 shadow-sm border text-sm"
-                 [class.bg-blue-600]="msg.role === 'user'" [class.text-white]="msg.role === 'user'" [class.border-transparent]="msg.role === 'user'" [class.rounded-2xl]="true" [class.rounded-tr-sm]="msg.role === 'user'"
-                 [class.bg-white]="msg.role === 'model'" [class.dark:bg-gray-800]="msg.role === 'model'" [class.text-gray-700]="msg.role === 'model'" [class.dark:text-gray-300]="msg.role === 'model'" [class.border-gray-100]="msg.role === 'model'" [class.dark:border-gray-700]="msg.role === 'model'" [class.rounded-tl-sm]="msg.role === 'model'">
-              
-              <!-- Contenu formaté -->
-              <div [innerHTML]="formatMessage(msg.content)" class="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap"></div>
-            </div>
-          </div>
-        }
-
-        <!-- Indicateur de frappe -->
-        @if (isLoading()) {
-          <div class="flex gap-3 max-w-[85%]">
-            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400 flex-shrink-0 flex items-center justify-center">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-5 py-4 bg-blue-600 text-white shrink-0">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
               <lucide-icon name="bot" [size]="18"></lucide-icon>
             </div>
-            <div class="bg-white dark:bg-gray-800 p-3 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-1.5 h-10">
-              <div class="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"></div>
-              <div class="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-              <div class="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+            <div>
+              <p class="font-semibold text-sm">Mentor IA</p>
+              <p class="text-xs text-blue-100">Propulsé par Gemini</p>
             </div>
           </div>
-        }
-      </div>
+          <button (click)="close()" class="text-white/70 hover:text-white transition-colors cursor-pointer" aria-label="Fermer">
+            <lucide-icon name="x" [size]="20"></lucide-icon>
+          </button>
+        </div>
 
-      <!-- Input Form -->
-      <form (ngSubmit)="sendMessage()" class="p-3 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex gap-2">
-        <input 
-          type="text" 
-          [(ngModel)]="userInput" 
-          name="userInput"
-          placeholder="Posez votre question..." 
-          class="flex-1 bg-gray-100 dark:bg-gray-800 border-transparent focus:bg-white dark:focus:bg-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 rounded-xl px-4 py-2.5 text-sm dark:text-white transition-all outline-none"
-          [disabled]="isLoading()"
-          autocomplete="off">
-        <button 
-          type="submit" 
-          [disabled]="!userInput.trim() || isLoading()"
-          class="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0">
-          <lucide-icon name="send" [size]="20"></lucide-icon>
-        </button>
-      </form>
-    </div>
+        <!-- Messages -->
+        <div #scrollArea class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-[#0f0f0f]">
+
+          <!-- Message de bienvenue -->
+          <div class="flex gap-3">
+            <div class="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 shrink-0 flex items-center justify-center mt-0.5">
+              <lucide-icon name="bot" [size]="15"></lucide-icon>
+            </div>
+            <div class="bg-white dark:bg-gray-900 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-700 dark:text-gray-300 shadow-sm border border-gray-100 dark:border-gray-800 max-w-[85%]">
+              Bonjour ! 👋 Je suis votre Mentor IA. Posez-moi vos questions sur Angular, TypeScript, Git ou n'importe quel concept de développement.
+            </div>
+          </div>
+
+          <!-- Historique -->
+          @for (msg of messages(); track $index) {
+            @if (msg.role === 'user') {
+              <div class="flex gap-3 flex-row-reverse">
+                <div class="w-7 h-7 rounded-full bg-blue-600 text-white shrink-0 flex items-center justify-center mt-0.5">
+                  <lucide-icon name="user" [size]="15"></lucide-icon>
+                </div>
+                <div class="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm max-w-[85%] shadow-sm">
+                  {{ msg.content }}
+                </div>
+              </div>
+            } @else {
+              <div class="flex gap-3">
+                <div class="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 shrink-0 flex items-center justify-center mt-0.5">
+                  <lucide-icon name="bot" [size]="15"></lucide-icon>
+                </div>
+                <div class="bg-white dark:bg-gray-900 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-700 dark:text-gray-300 shadow-sm border border-gray-100 dark:border-gray-800 max-w-[85%] whitespace-pre-wrap">
+                  {{ msg.content }}
+                </div>
+              </div>
+            }
+          }
+
+          <!-- Indicateur de frappe -->
+          @if (isLoading()) {
+            <div class="flex gap-3">
+              <div class="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 shrink-0 flex items-center justify-center">
+                <lucide-icon name="bot" [size]="15"></lucide-icon>
+              </div>
+              <div class="bg-white dark:bg-gray-900 rounded-2xl rounded-tl-sm px-4 py-3 border border-gray-100 dark:border-gray-800 flex items-center gap-1.5">
+                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0s"></span>
+                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0.15s"></span>
+                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0.3s"></span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Zone de saisie -->
+        <form (ngSubmit)="send()" class="flex gap-2 p-3 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 shrink-0">
+          <input
+            type="text"
+            [(ngModel)]="inputText"
+            name="msg"
+            autocomplete="off"
+            placeholder="Posez votre question…"
+            [disabled]="isLoading()"
+            class="flex-1 bg-gray-100 dark:bg-gray-900 border-transparent rounded-xl px-4 py-2.5 text-sm dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all disabled:opacity-50">
+          <button
+            type="submit"
+            [disabled]="!inputText.trim() || isLoading()"
+            class="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+            aria-label="Envoyer">
+            <lucide-icon name="send" [size]="18"></lucide-icon>
+          </button>
+        </form>
+
+      </div>
     }
-  `
+  `,
 })
 export class ChatbotComponent {
   private chatbotService = inject(IaChatbotService);
-  
-  readonly MessageCircle = MessageCircle;
-  readonly X = X;
-  readonly Send = Send;
-  readonly Bot = Bot;
-  readonly User = User;
+  private cdr = inject(ChangeDetectorRef);
 
-  @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
+  @ViewChild('scrollArea') private scrollArea!: ElementRef<HTMLDivElement>;
 
   isOpen = signal(false);
   isLoading = signal(false);
   messages = signal<ChatMessage[]>([]);
-  userInput = '';
+  inputText = '';
+  isMinimized = signal(false);
 
-  toggleChat() {
-    this.isOpen.update(v => !v);
+  open(): void {
+    this.isOpen.set(true);
+    this.cdr.markForCheck();
   }
 
-  sendMessage() {
-    const text = this.userInput.trim();
+  close(): void {
+    this.isOpen.set(false);
+    this.cdr.markForCheck();
+  }
+
+  send(): void {
+    const text = this.inputText.trim();
     if (!text || this.isLoading()) return;
 
-    // Ajouter le message de l'utilisateur
-    this.messages.update(msgs => [...msgs, { role: 'user', content: text }]);
-    this.userInput = '';
+    // Ajouter le message utilisateur
+    this.messages.update((msgs) => [...msgs, { role: 'user', content: text }]);
+    this.inputText = '';
     this.isLoading.set(true);
+    this.cdr.markForCheck();
     this.scrollToBottom();
 
-    // Appeler l'API Gemini
+    // Appel à l'API Gemini
     this.chatbotService.sendMessage(this.messages(), text).subscribe({
       next: (response) => {
-        this.messages.update(msgs => [...msgs, { role: 'model', content: response }]);
+        this.messages.update((msgs) => [
+          ...msgs,
+          { role: 'model', content: response },
+        ]);
         this.isLoading.set(false);
+        this.cdr.markForCheck();
         this.scrollToBottom();
       },
       error: () => {
+        this.messages.update((msgs) => [
+          ...msgs,
+          { role: 'model', content: "Désolé, une erreur s'est produite. Veuillez réessayer." },
+        ]);
         this.isLoading.set(false);
-      }
+        this.cdr.markForCheck();
+      },
     });
   }
 
-  private scrollToBottom() {
+  private scrollToBottom(): void {
     setTimeout(() => {
-      if (this.scrollContainer) {
-        const el = this.scrollContainer.nativeElement;
-        el.scrollTop = el.scrollHeight;
+      if (this.scrollArea?.nativeElement) {
+        this.scrollArea.nativeElement.scrollTop = this.scrollArea.nativeElement.scrollHeight;
       }
-    }, 100);
-  }
-
-  // Formatage simple pour les blocs de code Markdown
-  formatMessage(text: string): string {
-    // Échapper le HTML pour éviter XSS, puis formater les blocs de code
-    let formatted = text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-      
-    // Remplacer ```code``` par <pre><code>code</code></pre>
-    formatted = formatted.replace(/```(.*?)\n([\s\S]*?)```/g, (match, lang, code) => {
-      return `<div class="my-2 rounded-lg overflow-hidden bg-[#0d1117] border border-gray-700/50">
-                <div class="px-3 py-1 bg-[#161b22] text-xs font-mono text-gray-400 border-b border-gray-700/50">${lang || 'code'}</div>
-                <pre class="p-3 overflow-x-auto font-mono text-sm text-gray-300"><code>${code}</code></pre>
-              </div>`;
-    });
-    
-    // Remplacer `code` inline
-    formatted = formatted.replace(/`([^`]+)`/g, '<code class="px-1 py-0.5 bg-gray-200 dark:bg-gray-800 rounded font-mono text-sm text-red-500 dark:text-red-400">$1</code>');
-    
-    // Remplacer **bold**
-    formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    
-    return formatted;
+    }, 50);
   }
 }

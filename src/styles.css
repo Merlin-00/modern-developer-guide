@@ -1,6 +1,9 @@
 /* You can add global styles to this file, and also import other style files */
 @import 'tailwindcss';
 
+/* Tailwind v4 : configurer le mode sombre basé sur la classe .dark sur <html> */
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-inter: "Inter", sans-serif;
   --font-jakarta: "Plus Jakarta Sans", sans-serif;
@@ -8,60 +11,40 @@
 }
 
 @layer base {
-  :root {
-    --bg-primary: #fafafa;
-    --text-primary: #1f2937;
-  }
-
-  .dark {
-    --bg-primary: #121212;
-    --text-primary: #e5e7eb;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg-primary: #121212;
-      --text-primary: #e5e7eb;
-    }
-  }
-
   body {
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
     font-family: var(--font-inter);
     line-height: 1.7;
-    @apply antialiased transition-colors duration-300;
+    @apply antialiased transition-colors duration-300 bg-gray-50 text-gray-900 dark:bg-[#0f0f0f] dark:text-gray-100;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-jakarta);
     font-weight: 700;
-    @apply tracking-tight text-gray-900 dark:text-white;
+    @apply tracking-tight;
   }
 
-  pre, code {
+  pre, code, kbd {
     font-family: var(--font-mono);
-    font-weight: 500;
   }
 }
 
 @layer components {
-  /* Boutons globaux réutilisables */
+  /* Boutons globaux — définis ici, utilisés via classe CSS (pas de composant bouton) */
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-offset-gray-900;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-offset-[#0f0f0f];
   }
-  
+
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-900 transition-all duration-200 hover:bg-gray-50 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700 dark:focus:ring-offset-gray-900;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-900 transition-all duration-200 hover:bg-gray-50 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:hover:bg-gray-800;
   }
 
-  /* Cartes modernes et minimalistes */
+  /* Carte légère et épurée */
   .card-modern {
-    @apply rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 transition-all hover:shadow-md dark:bg-gray-800 dark:ring-white/10;
+    @apply rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 transition-all hover:shadow-md dark:bg-gray-900 dark:ring-white/10;
   }
 
-  /* Confort de lecture optimal */
+  /* Contrainte de largeur pour le confort de lecture */
   .reading-container {
-    @apply max-w-[75ch] mx-auto;
+    max-width: 75ch;
   }
 }

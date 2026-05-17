@@ -13,6 +13,7 @@ export interface Tip {
   authorAvatar: string;
   createdAt?: any;
   likes: number;
+  isEdited?: boolean;
 }
 
 @Injectable({

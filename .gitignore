@@ -47,3 +47,7 @@ Thumbs.db
 .firebase
 *-debug.log
 .runtimeconfig.json
+
+# Sensitive environment credentials and API keys
+/src/environments/environment.ts
+/src/environments/environment.development.ts

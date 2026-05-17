@@ -10,33 +10,37 @@ import { ThemeService } from '../../../core/services/theme.service';
   imports: [CommonModule, RouterModule, LucideAngularModule],
   template: `
     <header class="sticky top-0 z-50 w-full border-b border-gray-200/50 bg-white/80 backdrop-blur-md dark:border-gray-800/50 dark:bg-[#121212]/80 transition-colors duration-300">
-      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-3xl mx-auto px-6 w-full">
         <div class="flex h-16 items-center justify-between">
           <!-- Logo -->
           <div class="flex items-center">
             <a routerLink="/" class="flex items-center gap-2 group">
-              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white transition-transform group-hover:scale-105">
-                <lucide-icon name="code" [size]="20"></lucide-icon>
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white transition-transform group-hover:scale-105">
+                <lucide-icon name="code" [size]="16"></lucide-icon>
               </div>
-              <span class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">MDG.</span>
+              <span class="text-lg font-bold tracking-tight text-gray-900 dark:text-white">MDG.</span>
             </a>
           </div>
 
           <!-- Desktop Navigation -->
-          <nav class="hidden md:flex items-center gap-8">
-            <a routerLink="/" routerLinkActive="text-blue-600 dark:text-blue-400 font-semibold" [routerLinkActiveOptions]="{exact: true}" class="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white flex items-center gap-2">
+          <nav class="hidden md:flex items-center gap-4">
+            <a routerLink="/" routerLinkActive="bg-blue-50/70 dark:bg-blue-950/25 text-blue-600 dark:text-blue-400 font-semibold" [routerLinkActiveOptions]="{exact: true}" class="text-sm font-medium text-gray-600 dark:text-gray-300 px-3.5 py-1.5 rounded-xl hover:bg-gray-100/50 dark:hover:bg-gray-800/30 hover:text-gray-900 dark:hover:text-white transition-all flex items-center gap-2 cursor-pointer">
               <lucide-icon name="book-open" [size]="16"></lucide-icon>
               Le Guide
             </a>
-            <a routerLink="/tips" routerLinkActive="text-blue-600 dark:text-blue-400 font-semibold" class="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white flex items-center gap-2">
+            <a routerLink="/tips" routerLinkActive="bg-blue-50/70 dark:bg-blue-950/25 text-blue-600 dark:text-blue-400 font-semibold" class="text-sm font-medium text-gray-600 dark:text-gray-300 px-3.5 py-1.5 rounded-xl hover:bg-gray-100/50 dark:hover:bg-gray-800/30 hover:text-gray-900 dark:hover:text-white transition-all flex items-center gap-2 cursor-pointer">
               <lucide-icon name="code" [size]="16"></lucide-icon>
               Astuces
+            </a>
+            <a routerLink="/profile" routerLinkActive="bg-blue-50/70 dark:bg-blue-950/25 text-blue-600 dark:text-blue-400 font-semibold" class="text-sm font-medium text-gray-600 dark:text-gray-300 px-3.5 py-1.5 rounded-xl hover:bg-gray-100/50 dark:hover:bg-gray-800/30 hover:text-gray-900 dark:hover:text-white transition-all flex items-center gap-2 cursor-pointer">
+              <lucide-icon name="user" [size]="16"></lucide-icon>
+              Profil
             </a>
           </nav>
 
           <!-- Actions -->
           <div class="flex items-center gap-4">
-            <button (click)="themeService.toggleTheme()" class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors" aria-label="Toggle Dark Mode">
+            <button (click)="themeService.toggleTheme()" class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors cursor-pointer" aria-label="Toggle Dark Mode">
               @if (themeService.isDarkMode()) {
                 <lucide-icon name="sun" [size]="20"></lucide-icon>
               } @else {
@@ -44,12 +48,12 @@ import { ThemeService } from '../../../core/services/theme.service';
               }
             </button>
             
-            <a href="https://github.com" target="_blank" class="hidden md:flex p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors">
+            <a href="https://github.com" target="_blank" class="hidden md:flex p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors cursor-pointer">
               <lucide-icon name="github" [size]="20"></lucide-icon>
             </a>
             
             <!-- Mobile Menu Toggle -->
-            <button (click)="isMobileMenuOpen = !isMobileMenuOpen" class="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors">
+            <button (click)="isMobileMenuOpen = !isMobileMenuOpen" class="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors cursor-pointer">
               @if (isMobileMenuOpen) {
                 <lucide-icon name="x" [size]="24"></lucide-icon>
               } @else {
@@ -60,17 +64,21 @@ import { ThemeService } from '../../../core/services/theme.service';
         </div>
       </div>
 
-      <!-- Mobile Navigation -->
+      <!-- Mobile Navigation (Floating right card) -->
       @if (isMobileMenuOpen) {
-        <div class="md:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-[#121212] px-4 py-6">
-          <nav class="flex flex-col gap-4">
-            <a routerLink="/" (click)="isMobileMenuOpen = false" class="text-base font-medium text-gray-600 dark:text-gray-300 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-3">
-              <lucide-icon name="book-open" [size]="20"></lucide-icon>
+        <div class="md:hidden absolute right-6 top-16 w-56 bg-white dark:bg-[#121212] rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 py-3 z-50 animate-fade-in">
+          <nav class="flex flex-col gap-1 px-2.5">
+            <a routerLink="/" (click)="isMobileMenuOpen = false" routerLinkActive="bg-blue-50/70 dark:bg-blue-950/25 text-blue-600 dark:text-blue-400 font-semibold" [routerLinkActiveOptions]="{exact: true}" class="text-sm font-semibold text-gray-600 dark:text-gray-300 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/40 flex items-center gap-3 transition-colors cursor-pointer">
+              <lucide-icon name="book-open" [size]="16"></lucide-icon>
               Le Guide
             </a>
-            <a routerLink="/tips" (click)="isMobileMenuOpen = false" class="text-base font-medium text-gray-600 dark:text-gray-300 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-3">
-              <lucide-icon name="code" [size]="20"></lucide-icon>
+            <a routerLink="/tips" (click)="isMobileMenuOpen = false" routerLinkActive="bg-blue-50/70 dark:bg-blue-950/25 text-blue-600 dark:text-blue-400 font-semibold" class="text-sm font-semibold text-gray-600 dark:text-gray-300 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/40 flex items-center gap-3 transition-colors cursor-pointer">
+              <lucide-icon name="code" [size]="16"></lucide-icon>
               Astuces
+            </a>
+            <a routerLink="/profile" (click)="isMobileMenuOpen = false" routerLinkActive="bg-blue-50/70 dark:bg-blue-950/25 text-blue-600 dark:text-blue-400 font-semibold" class="text-sm font-semibold text-gray-600 dark:text-gray-300 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/40 flex items-center gap-3 transition-colors cursor-pointer">
+              <lucide-icon name="user" [size]="16"></lucide-icon>
+              Profil
             </a>
           </nav>
         </div>

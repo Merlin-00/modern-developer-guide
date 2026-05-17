@@ -3,7 +3,7 @@ import {
   importProvidersFrom,
   provideZonelessChangeDetection,
 } from '@angular/core';
-import { provideRouter, withComponentInputBinding, withViewTransitions } from '@angular/router';
+import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
 import { getAuth, provideAuth } from '@angular/fire/auth';
@@ -33,6 +33,7 @@ import {
   MessageSquare,
   Trash2,
   LogIn,
+  Edit,
 } from 'lucide-angular';
 
 import { routes } from './app.routes';
@@ -41,7 +42,7 @@ import { environment } from '../environments/environment';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZonelessChangeDetection(),
-    provideRouter(routes, withComponentInputBinding(), withViewTransitions()),
+    provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(),
 
     // importProvidersFrom() est la bonne façon d'intégrer un ModuleWithProviders
@@ -68,6 +69,7 @@ export const appConfig: ApplicationConfig = {
         MessageSquare,
         Trash2,
         LogIn,
+        Edit,
       }),
     ),
 

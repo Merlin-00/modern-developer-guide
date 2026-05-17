@@ -1,0 +1,355 @@
+import {
+  Component,
+  inject,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { LucideAngularModule } from 'lucide-angular';
+import { AuthService } from '../../core/services/auth.service';
+import { TipService, Tip } from '../../core/services/tip.service';
+import { map, catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
+
+@Component({
+  selector: 'app-profile',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule],
+  template: `
+    <div class="max-w-4xl mx-auto px-6 pt-8 pb-16">
+
+      <!-- En-tête -->
+      <div class="mb-6">
+        <div class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-4">
+          <span class="w-6 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
+          Espace Développeur
+        </div>
+        <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white leading-tight">
+          Votre Profil
+        </h1>
+      </div>
+
+      <!-- État : Non connecté -->
+      @if (!authService.currentUser()) {
+        <div class="text-center py-20 px-6 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
+          <div class="w-16 h-16 mx-auto rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-6">
+            <lucide-icon name="user" [size]="28"></lucide-icon>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">Rejoignez la communauté</h2>
+          <p class="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
+            Connectez-vous pour commencer à partager vos astuces de code, aider les autres développeurs et gérer vos publications.
+          </p>
+          <button (click)="authService.loginWithGoogle()" class="btn-primary cursor-pointer">
+            <lucide-icon name="log-in" [size]="18"></lucide-icon>
+            Se connecter avec Google
+          </button>
+        </div>
+      } @else {
+        <!-- État : Connecté -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          <!-- Section Gauche : Infos Profil -->
+          <div class="space-y-6 lg:col-span-1">
+            <div class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+              <div class="text-center">
+                <!-- Avatar -->
+                <div class="relative inline-block mb-4">
+                  @if (authService.currentUser()?.photoURL) {
+                    <img
+                      [src]="authService.currentUser()?.photoURL"
+                      [alt]="authService.currentUser()?.displayName"
+                      referrerpolicy="no-referrer"
+                      class="w-24 h-24 rounded-full border-2 border-blue-600 dark:border-blue-400 p-0.5 object-cover mx-auto">
+                  } @else {
+                    <div class="w-24 h-24 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-3xl font-extrabold mx-auto">
+                      {{ authService.currentUser()?.displayName?.charAt(0)?.toUpperCase() || 'D' }}
+                    </div>
+                  }
+                </div>
+
+                <!-- Infos -->
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                  {{ authService.currentUser()?.displayName }}
+                </h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                  {{ authService.currentUser()?.email }}
+                </p>
+
+                <!-- Déconnexion -->
+                <button
+                  (click)="authService.logout()"
+                  class="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 dark:border-red-950 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/20 py-2.5 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer">
+                  <lucide-icon name="log-in" [size]="16" class="rotate-180"></lucide-icon>
+                  Déconnexion
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section Droite : Formulaire & Mes Astuces -->
+          <div class="space-y-6 lg:col-span-2">
+
+            <!-- Bloc : Partager ou modifier une astuce -->
+            <div id="tip-form-container" class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+              <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+                <lucide-icon name="message-square" [size]="20" class="text-blue-600 dark:text-blue-400"></lucide-icon>
+                {{ editingTipId() ? 'Modifier votre astuce' : 'Partager une astuce' }}
+              </h2>
+
+              <form [formGroup]="tipForm" (ngSubmit)="submitTip()" class="flex flex-col gap-4">
+                <div class="flex flex-col gap-1">
+                  <input
+                    type="text"
+                    formControlName="title"
+                    placeholder="Titre de votre astuce (ex: Centrer en CSS)"
+                    [class.border-red-500]="tipForm.get('title')?.invalid && tipForm.get('title')?.touched"
+                    [class.dark:border-red-500]="tipForm.get('title')?.invalid && tipForm.get('title')?.touched"
+                    class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-3 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-400">
+                  @if (tipForm.get('title')?.invalid && tipForm.get('title')?.touched) {
+                    <span class="text-xs text-red-500 px-1">Le titre doit comporter au moins 5 caractères.</span>
+                  }
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <textarea
+                    formControlName="description"
+                    rows="3"
+                    placeholder="Expliquez brièvement comment ça fonctionne..."
+                    [class.border-red-500]="tipForm.get('description')?.invalid && tipForm.get('description')?.touched"
+                    [class.dark:border-red-500]="tipForm.get('description')?.invalid && tipForm.get('description')?.touched"
+                    class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-3 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-400 resize-none"></textarea>
+                  @if (tipForm.get('description')?.invalid && tipForm.get('description')?.touched) {
+                    <span class="text-xs text-red-500 px-1">La description doit comporter au moins 10 caractères.</span>
+                  }
+                </div>
+
+                <textarea
+                  formControlName="codeSnippet"
+                  rows="5"
+                  placeholder="Snippet de code..."
+                  class="w-full font-mono rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-3 text-sm text-gray-300 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-500 resize-none"></textarea>
+
+                <div class="flex items-center justify-between gap-4">
+                  <select
+                    formControlName="language"
+                    class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500 cursor-pointer">
+                    <option value="typescript">TypeScript</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="bash">Bash / Shell</option>
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="go">Go</option>
+                    <option value="rust">Rust</option>
+                    <option value="cpp">C++ / C</option>
+                    <option value="csharp">C#</option>
+                    <option value="php">PHP</option>
+                    <option value="ruby">Ruby</option>
+                    <option value="sql">SQL</option>
+                    <option value="yaml">YAML / JSON</option>
+                    <option value="markdown">Markdown</option>
+                  </select>
+
+                  <div class="flex items-center gap-2.5">
+                    @if (editingTipId()) {
+                      <button
+                        type="button"
+                        (click)="cancelEdit()"
+                        class="btn-secondary !py-2 shrink-0 cursor-pointer">
+                        Annuler
+                      </button>
+                    }
+                    <button
+                      type="submit"
+                      [disabled]="isSubmitting()"
+                      class="btn-primary !py-2 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+                      {{ isSubmitting() ? 'Enregistrement…' : (editingTipId() ? 'Enregistrer' : 'Publier') }}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Bloc : Mes astuces partagées -->
+            <div>
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                Mes astuces partagées
+              </h2>
+
+              @if (myTips$ | async; as tips) {
+                @if (tips.length === 0) {
+                  <div class="text-center py-12 p-6 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
+                    <p class="text-gray-500 dark:text-gray-400 text-sm">
+                      Vous n'avez pas encore partagé d'astuces. Créez-en une au-dessus !
+                    </p>
+                  </div>
+                } @else {
+                  <div class="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
+                    @for (tip of tips; track tip.id) {
+                      <div class="py-5 group flex items-start justify-between gap-4">
+                        <div class="flex-1">
+                          <h4 class="text-base font-bold text-gray-900 dark:text-white mb-1">
+                            {{ tip.title }}
+                          </h4>
+                          <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                            {{ tip.description }}
+                          </p>
+                          <div class="flex items-center gap-2 mt-2">
+                            <span class="inline-block text-xs font-semibold px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                              {{ tip.language }}
+                            </span>
+                            <span class="text-xs text-gray-400 dark:text-gray-500">
+                              • {{ formatDate(tip.createdAt) | date:'dd MMM yyyy' }}
+                            </span>
+                            @if (tip.isEdited) {
+                              <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-50/70 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-semibold text-[10px]">
+                                Modifié
+                              </span>
+                            }
+                          </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-1.5">
+                          <!-- Modifier -->
+                          <button
+                            (click)="editTip(tip)"
+                            class="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-xl transition-all cursor-pointer"
+                            title="Modifier">
+                            <lucide-icon name="edit" [size]="18"></lucide-icon>
+                          </button>
+
+                          <!-- Supprimer -->
+                          <button
+                            (click)="deleteTip(tip.id!)"
+                            class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all cursor-pointer"
+                            title="Supprimer">
+                            <lucide-icon name="trash-2" [size]="18"></lucide-icon>
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              } @else {
+                <p class="text-sm text-gray-500">Chargement de vos astuces...</p>
+              }
+            </div>
+
+          </div>
+
+        </div>
+      }
+
+    </div>
+  `,
+})
+export class ProfileComponent {
+  authService = inject(AuthService);
+  private tipService = inject(TipService);
+  private fb = inject(FormBuilder);
+
+  isSubmitting = signal(false);
+  editingTipId = signal<string | null>(null);
+
+  // Filtrer les astuces pour ne récupérer que celles de l'utilisateur connecté
+  myTips$ = this.tipService.getTips().pipe(
+    map((tips) =>
+      tips.filter((t) => t.authorId === this.authService.currentUser()?.uid)
+    ),
+    catchError(() => of([]))
+  );
+
+  tipForm = this.fb.nonNullable.group({
+    title: ['', [Validators.required, Validators.minLength(5)]],
+    description: ['', [Validators.required, Validators.minLength(10)]],
+    codeSnippet: [''],
+    language: ['typescript'],
+  });
+
+  editTip(tip: Tip): void {
+    this.editingTipId.set(tip.id!);
+    this.tipForm.setValue({
+      title: tip.title,
+      description: tip.description,
+      codeSnippet: tip.codeSnippet || '',
+      language: tip.language || 'typescript',
+    });
+
+    // Défilement automatique fluide vers le formulaire
+    setTimeout(() => {
+      const container = document.getElementById('tip-form-container');
+      if (container) {
+        container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 50);
+  }
+
+  cancelEdit(): void {
+    this.editingTipId.set(null);
+    this.tipForm.reset({ language: 'typescript' });
+  }
+
+  async submitTip(): Promise<void> {
+    if (this.tipForm.invalid) {
+      // Signaler les erreurs de validation en marquant les champs comme touchés
+      this.tipForm.markAllAsTouched();
+      return;
+    }
+    if (!this.authService.currentUser()) return;
+
+    this.isSubmitting.set(true);
+    const { title, description, codeSnippet, language } = this.tipForm.getRawValue();
+
+    // Retirer les espaces du début et de la fin (trim)
+    const titleTrimmed = title?.trim() || '';
+    const descriptionTrimmed = description?.trim() || '';
+    const snippetTrimmed = codeSnippet?.trim() || '';
+    const languageTrimmed = language?.trim() || 'typescript';
+
+    try {
+      if (this.editingTipId()) {
+        await this.tipService.updateTip(this.editingTipId()!, {
+          title: titleTrimmed,
+          description: descriptionTrimmed,
+          codeSnippet: snippetTrimmed,
+          language: languageTrimmed,
+          isEdited: true, // Marque l'astuce comme modifiée
+        });
+        this.cancelEdit();
+      } else {
+        const user = this.authService.currentUser()!;
+        await this.tipService.addTip({
+          title: titleTrimmed,
+          description: descriptionTrimmed,
+          codeSnippet: snippetTrimmed,
+          language: languageTrimmed,
+          authorId: user.uid,
+          authorName: user.displayName || 'Utilisateur',
+          authorAvatar: user.photoURL || '',
+        });
+        this.tipForm.reset({ language: 'typescript' });
+      }
+    } catch (err) {
+      console.error('Erreur lors de la publication:', err);
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  formatDate(createdAt: any): Date | string {
+    if (!createdAt) return new Date();
+    if (createdAt.seconds) {
+      return new Date(createdAt.seconds * 1000);
+    }
+    return createdAt;
+  }
+
+  async deleteTip(id: string): Promise<void> {
+    if (confirm('Supprimer définitivement cette astuce ?')) {
+      await this.tipService.deleteTip(id).catch(() => {});
+    }
+  }
+}

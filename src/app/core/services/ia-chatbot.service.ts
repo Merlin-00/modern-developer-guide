@@ -14,7 +14,7 @@ export interface ChatMessage {
 export class IaChatbotService {
   private http = inject(HttpClient);
   
-  private apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${environment.gemini.apiKey}`;
+  private apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${environment.gemini.apiKey}`;
 
   sendMessage(history: ChatMessage[], newMessage: string): Observable<string> {
     // Format requis par l'API Gemini
