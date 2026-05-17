@@ -450,40 +450,85 @@ export class TipsComponent implements OnInit {
       .replace(/>/g, '&gt;');
     if (!language) return escaped;
     const lang = language.toLowerCase();
-    const stringRegex = /(['"`])(.*?)\1/g;
-    const numberRegex = /\b(\d+)\b/g;
+
+    // 1. Extraire les commentaires pour les protéger
+    const comments: string[] = [];
     const isHashComment = ['python', 'bash', 'sh', 'shell', 'yaml', 'yml', 'ruby', 'perl', 'dockerfile'].includes(lang);
     const commentRegex = isHashComment 
       ? /(#.*)/g 
       : /(\/\/.*|\/\*[\s\S]*?\*\/)/g;
+    
+    escaped = escaped.replace(commentRegex, (match) => {
+      const id = `___COMMENT_PLACEHOLDER_${comments.length}___`;
+      comments.push(match);
+      return id;
+    });
 
+    // 2. Extraire les chaînes pour les protéger
+    const strings: string[] = [];
+    const stringRegex = /(['"`])(.*?)\1/g;
+    escaped = escaped.replace(stringRegex, (match) => {
+      const id = `___STRING_PLACEHOLDER_${strings.length}___`;
+      strings.push(match);
+      return id;
+    });
+
+    // 3. Colorer le reste du code
     if (['html', 'xml', 'vue', 'svg'].includes(lang)) {
-      return escaped
+      escaped = escaped
         .replace(/(&lt;\/?)(\w+)(.*?)(&gt;)/g, (match, p1, p2, p3, p4) => {
           const attrs = p3.replace(/(\b\w+)(=)(['"].*?['"])/g, '<span class="text-amber-400">$1</span>$2<span class="text-emerald-400">$3</span>');
           return `${p1}<span class="text-rose-400 font-semibold">${p2}</span>${attrs}${p4}`;
-        })
-        .replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="text-gray-500 italic">$1</span>');
-    }
-
-    if (lang === 'css' || lang === 'scss' || lang === 'less') {
-      return escaped
+        });
+    } else if (['css', 'scss', 'less'].includes(lang)) {
+      escaped = escaped
         .replace(/(\b[-\w]+)(?=\s*:)/g, '<span class="text-sky-400">$1</span>')
         .replace(/(:\s*)([^;]+)(;)/g, '$1<span class="text-emerald-400">$2</span>$3')
-        .replace(/([^{]+)(?=\s*\{)/g, '<span class="text-amber-400 font-bold">$1</span>')
-        .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="text-gray-500 italic">$1</span>');
+        .replace(/([^{]+)(?=\s*\{)/g, '<span class="text-amber-400 font-bold">$1</span>');
+    } else {
+      const keywords = /\b(const|let|var|function|return|export|import|from|class|interface|extends|implements|new|async|await|if|else|for|while|switch|case|break|try|catch|finally|throw|default|of|in|as|def|fn|pub|impl|struct|enum|type|package|func|go|defer|select|chan|map|range|public|private|protected|static|final|void|int|double|float|char|bool|boolean|string|any|unknown|never|list|dict|tuple|set|print|self|this|null|nil|true|false|and|or|not|elif|lambda|yield|with|except|raise)\b/g;
+      const types = /\b(String|Number|Boolean|Object|Array|Promise|Observable|Signal|WritableSignal|Integer|List|Map|Set|Dict|NoneType|Option|Result|Vec|str|num)\b/g;
+      const numberRegex = /\b(\d+)\b/g;
+
+      escaped = escaped
+        .replace(keywords, '<span class="text-amber-500 font-bold">$1</span>')
+        .replace(types, '<span class="text-sky-400">$1</span>');
+
+      // Protéger les spans introduits pour éviter de colorer les chiffres dans les classes CSS (ex: text-amber-500)
+      const spans: string[] = [];
+      const spanRegex = /(<span[^>]*>|<\/span>)/g;
+      escaped = escaped.replace(spanRegex, (match) => {
+        const id = `___SPAN_PLACEHOLDER_${spans.length}___`;
+        spans.push(match);
+        return id;
+      });
+
+      escaped = escaped
+        .replace(numberRegex, '<span class="text-purple-400">$1</span>')
+        .replace(/\b(\w+)(?=\()/g, '<span class="text-blue-400">$1</span>');
+
+      // Restaurer les spans
+      spans.forEach((span, index) => {
+        const placeholder = `___SPAN_PLACEHOLDER_${index}___`;
+        escaped = escaped.replace(placeholder, span);
+      });
     }
 
-    const keywords = /\b(const|let|var|function|return|export|import|from|class|interface|extends|implements|new|async|await|if|else|for|while|switch|case|break|try|catch|finally|throw|default|of|in|as|def|fn|pub|impl|struct|enum|type|package|import|func|go|defer|select|chan|map|range|public|private|protected|static|final|void|int|double|float|char|bool|boolean|string|any|unknown|never|list|dict|tuple|set|import|from|print|self|this|null|nil|true|false|and|or|not|elif|lambda|yield|with|as|try|except|raise)\b/g;
-    const types = /\b(String|Number|Boolean|Object|Array|Promise|Observable|Signal|WritableSignal|Integer|List|Map|Set|Dict|NoneType|Option|Result|Vec|str|num)\b/g;
+    // 4. Réinjecter les chaînes colorées
+    strings.forEach((str, index) => {
+      const placeholder = `___STRING_PLACEHOLDER_${index}___`;
+      const highlighted = `<span class="text-emerald-400">${str}</span>`;
+      escaped = escaped.replace(placeholder, highlighted);
+    });
 
-    return escaped
-      .replace(keywords, '<span class="text-amber-500 font-bold">$1</span>')
-      .replace(types, '<span class="text-sky-400">$1</span>')
-      .replace(stringRegex, '<span class="text-emerald-400">$1$2$1</span>')
-      .replace(numberRegex, '<span class="text-purple-400">$1</span>')
-      .replace(commentRegex, '<span class="text-gray-500 italic">$1</span>')
-      .replace(/\b(\w+)(?=\()/g, '<span class="text-blue-400">$1</span>');
+    // 5. Réinjecter les commentaires colorés
+    comments.forEach((com, index) => {
+      const placeholder = `___COMMENT_PLACEHOLDER_${index}___`;
+      const highlighted = `<span class="text-gray-500 italic">${com}</span>`;
+      escaped = escaped.replace(placeholder, highlighted);
+    });
+
+    return escaped;
   }
 
   prevPage(): void {
