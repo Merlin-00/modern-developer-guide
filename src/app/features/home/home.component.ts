@@ -4,6 +4,7 @@ import {
   inject,
   PLATFORM_ID,
   AfterViewInit,
+  OnInit,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
@@ -164,12 +165,24 @@ interface GuideSlide {
     </div>
   `,
 })
-export class HomeComponent implements AfterViewInit {
+export class HomeComponent implements AfterViewInit, OnInit {
   private platformId = inject(PLATFORM_ID);
   private sanitizer = inject(DomSanitizer);
 
   currentIndex = signal(0);
   copiedIndex = signal<number | null>(null);
+
+  ngOnInit(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      const savedIndex = localStorage.getItem('mdg_home_slide_index');
+      if (savedIndex !== null) {
+        const index = parseInt(savedIndex, 10);
+        if (!isNaN(index) && index >= 0 && index < this.slides.length) {
+          this.currentIndex.set(index);
+        }
+      }
+    }
+  }
 
   slides: GuideSlide[] = [
     {
@@ -435,6 +448,7 @@ EXPOSE 80`
     if (this.currentIndex() < this.slides.length - 1) {
       this.direction = 'right';
       this.currentIndex.update((i) => i + 1);
+      this.saveCurrentIndex();
       this.animateSlide();
       this.scrollToTop();
     }
@@ -444,6 +458,7 @@ EXPOSE 80`
     if (this.currentIndex() > 0) {
       this.direction = 'left';
       this.currentIndex.update((i) => i - 1);
+      this.saveCurrentIndex();
       this.animateSlide();
       this.scrollToTop();
     }
@@ -452,8 +467,15 @@ EXPOSE 80`
   goToSlide(index: number): void {
     this.direction = index > this.currentIndex() ? 'right' : 'left';
     this.currentIndex.set(index);
+    this.saveCurrentIndex();
     this.animateSlide();
     this.scrollToTop();
+  }
+
+  private saveCurrentIndex(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem('mdg_home_slide_index', this.currentIndex().toString());
+    }
   }
 
   private scrollToTop(): void {
