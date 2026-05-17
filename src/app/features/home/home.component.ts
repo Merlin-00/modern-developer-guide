@@ -17,6 +17,8 @@ interface GuideSlide {
   title: string;
   subtitle: string;
   content: string;
+  details?: string[];
+  imageUrl?: string;
   codeSnippet?: { language: string; code: string };
 }
 
@@ -31,7 +33,7 @@ interface GuideSlide {
     }
   `],
   template: `
-    <div class="min-h-[calc(100vh-4rem)] bg-gray-50 dark:bg-[#0f0f0f]">
+    <div class="min-h-[calc(100vh-4rem)] bg-gray-50 dark:bg-[#0f0f0f] transition-colors duration-300">
 
       <!-- Contenu de la slide active -->
       <div class="max-w-3xl mx-auto px-6 pt-8 pb-16">
@@ -41,34 +43,64 @@ interface GuideSlide {
             <div class="slide-content">
 
               <!-- Label étape -->
-              <div class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-8">
+              <div class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-6">
                 <span class="w-6 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
                 {{ slide.step }}
               </div>
 
               <!-- Titre -->
-              <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white mb-6 leading-tight">
+              <h1 class="text-3xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-4 leading-tight">
                 {{ slide.title }}
               </h1>
 
               <!-- Sous-titre -->
-              <p class="text-xl text-blue-600 dark:text-blue-400 font-medium mb-8">
+              <p class="text-lg md:text-xl text-blue-600 dark:text-blue-400 font-medium mb-6">
                 {{ slide.subtitle }}
               </p>
 
-              <!-- Contenu -->
-              <p class="text-lg text-gray-600 dark:text-gray-400 leading-relaxed reading-container">
+              <!-- Contenu principal -->
+              <p class="text-base md:text-lg text-gray-600 dark:text-gray-400 leading-relaxed reading-container mb-6">
                 {{ slide.content }}
               </p>
 
+              <!-- Image d'illustration si disponible -->
+              @if (slide.imageUrl) {
+                <div class="my-6 rounded-2xl overflow-hidden shadow-md border border-gray-200/60 dark:border-gray-800/60 bg-white dark:bg-gray-950 flex items-center justify-center p-1">
+                  <img 
+                    [src]="slide.imageUrl" 
+                    alt="Illustration {{ slide.title }}" 
+                    referrerpolicy="no-referrer"
+                    class="rounded-xl w-full max-h-[300px] object-cover transition-transform duration-500 hover:scale-102"
+                  >
+                </div>
+              }
+
+              <!-- Liste de détails enrichie -->
+              @if (slide.details && slide.details.length > 0) {
+                <div class="my-6 bg-white dark:bg-gray-950 p-6 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm">
+                  <h3 class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2">
+                    <span class="w-1.5 h-3 bg-blue-600 dark:bg-blue-400 rounded-sm"></span>
+                    Au programme de ce chapitre :
+                  </h3>
+                  <ul class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    @for (detail of slide.details; track detail) {
+                      <li class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                        <span class="text-blue-600 dark:text-blue-400 mt-1 font-bold">•</span>
+                        <span>{{ detail }}</span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+
               <!-- Bloc de code -->
               @if (slide.codeSnippet) {
-                <div class="mt-10 rounded-xl overflow-hidden border border-gray-800 shadow-2xl">
-                  <div class="flex items-center justify-between px-4 py-2.5 bg-[#161b22] border-b border-gray-700/50">
+                <div class="mt-8 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-xl">
+                  <div class="flex items-center justify-between px-4 py-2.5 bg-[#161b22] border-b border-gray-700/30">
                     <div class="flex gap-1.5">
-                      <span class="w-3 h-3 rounded-full bg-red-500/70"></span>
-                      <span class="w-3 h-3 rounded-full bg-yellow-500/70"></span>
-                      <span class="w-3 h-3 rounded-full bg-green-500/70"></span>
+                      <span class="w-2.5 h-2.5 rounded-full bg-red-500/70"></span>
+                      <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/70"></span>
+                      <span class="w-2.5 h-2.5 rounded-full bg-green-500/70"></span>
                     </div>
                     <span class="text-xs font-mono text-gray-400">{{ slide.codeSnippet.language }}</span>
                     <button
@@ -88,10 +120,10 @@ interface GuideSlide {
         }
       
         <!-- Navigation en bas du contenu — inline & sans ombres -->
-        <div class="mt-12 pt-8 border-t border-gray-100 dark:border-gray-800/60 flex items-center justify-between">
+        <div class="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800/60 flex items-center justify-between">
           
           <!-- Indicateurs de dots -->
-          <div class="flex gap-1.5">
+          <div class="flex flex-wrap gap-1.5 max-w-[70%]">
             @for (slide of slides; track slide.id; let i = $index) {
               <button
                 (click)="goToSlide(i)"
@@ -105,7 +137,7 @@ interface GuideSlide {
           </div>
 
           <!-- Boutons de contrôle (Précédent / Suivant) -->
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3 shrink-0">
             <!-- Bouton Précédent -->
             <button
               (click)="prevSlide()"
@@ -143,129 +175,260 @@ export class HomeComponent implements AfterViewInit {
     {
       id: 'intro',
       step: 'Introduction',
-      title: 'Devenir un Développeur Moderne',
-      subtitle: 'Le guide interactif ultime pour 2025.',
-      content:
-        "L'écosystème du développement web évolue à une vitesse fulgurante. Ce guide est conçu pour vous accompagner pas à pas vers la maîtrise des outils modernes : TypeScript, les frameworks, l'IA, le déploiement et les bonnes pratiques d'architecture. Fini les tutoriels dépassés — ici on se concentre sur ce qui est réellement utilisé en entreprise aujourd'hui.",
+      title: 'Guide du Développeur Moderne',
+      subtitle: 'De l’achat d’un PC à la mise en production d’un logiciel.',
+      content: 'Ce guide interactif est conçu pour vous accompagner pas à pas vers la maîtrise complète du développement moderne. De la sélection de votre première machine de travail jusqu\'à l\'automatisation de votre mise en production sur le Cloud, découvrez un parcours complet structuré en 10 chapitres enrichis de cas pratiques et d\'outils professionnels.',
+      imageUrl: 'https://images.openai.com/static-rsc-4/uOGtKCFgyKpFH8HsrE4ufu89Leyl3rsH_MxTGPUSY10ZYX7haKQbHXG6Mzmu3scDCnZEksSWfU7lHmg-nvy91ToGtfycbWavxg92HS8yWuVci-MGyMxFTBAWvujv_K9gX3F7x5X9_erXtA9JS8pKQiKvst5z0MzKWViWanYbKDUBLQ2jd5FUpc5JmC93h_lu?purpose=fullsize',
+      details: [
+        'Comprendre le métier en 2026',
+        'Sélectionner et configurer son PC',
+        'Installer sa suite de logiciels',
+        'Bases fondamentales du code',
+        'Codage productif assisté par l\'IA',
+        'APIs, Bases de données et Git',
+        'Projet fil rouge de A à Z (Ce site !)',
+        'Mise en production automatisée'
+      ]
     },
     {
-      id: 'tools',
-      step: 'Étape 01 — Environnement',
-      title: 'Préparer son Poste de Travail',
-      subtitle: 'Les bons outils font les bons développeurs.',
-      content:
-        "Avant d'écrire une seule ligne de code, il vous faut un environnement solide. Node.js pour exécuter JavaScript côté serveur, Git pour versionner votre code, et VS Code comme éditeur avec les bonnes extensions. Un bon setup évite 80% des problèmes avant même qu'ils apparaissent.",
-      codeSnippet: {
-        language: 'bash',
-        code: `# Vérifier Node.js (LTS recommandé)
-node --version  # v22.x ou supérieur
-
-# Installer Angular CLI globalement
-npm install -g @angular/cli
-
-# Créer un nouveau projet Angular
-ng new mon-projet --style tailwind
-
-# Lancer le serveur de développement
-cd mon-projet && ng serve`,
-      },
+      id: 'job',
+      step: 'Chapitre 01',
+      title: 'Le Métier de Développeur',
+      subtitle: 'Comprendre l\'écosystème et choisir sa spécialité.',
+      content: 'Le développement moderne est un écosystème vaste et passionnant. Avant de commencer à programmer, il est crucial d\'avoir une vue d\'ensemble des différentes branches du métier et des compétences requises pour collaborer efficacement en entreprise.',
+      details: [
+        'Frontend : Créer l\'interface visuelle utilisateur (React, Angular, Vue)',
+        'Backend : Concevoir la logique, la sécurité et les bases de données',
+        'Mobile : Développer des applications Android & iOS (Flutter, Kotlin)',
+        'DevOps : Automatiser l\'infrastructure et les déploiements cloud',
+        'IA & Cybersécurité : Concevoir des modèles intelligents et sécurisés',
+        'Soft Skills : Communication, gestion du temps et agilité Scrum'
+      ]
     },
     {
-      id: 'framework',
-      step: 'Étape 02 — Framework',
-      title: 'Angular avec les Standalone Components',
-      subtitle: 'La révolution des Signals et du Zoneless.',
-      content:
-        "Angular v20+ a radicalement simplifié son architecture : fini les NgModules complexes. Les Standalone Components sont légers, auto-suffisants et faciles à tester. Combinés aux Signals (qui remplacent RxJS pour la gestion d'état local), ils offrent une expérience de développement ultra moderne et des performances remarquables.",
-      codeSnippet: {
-        language: 'typescript',
-        code: `import { Component, signal, computed } from '@angular/core';
-
-// Composant standalone minimal — pas de NgModule nécessaire
-@Component({
-  selector: 'app-counter',
-  standalone: true,
-  template: \`
-    <div class="flex gap-4 items-center">
-      <button (click)="count.update(c => c - 1)">-</button>
-      <span class="font-bold text-2xl">{{ count() }}</span>
-      <button (click)="count.update(c => c + 1)">+</button>
-    </div>
-    <p>Double : {{ double() }}</p>
-  \`
-})
-export class CounterComponent {
-  // Signal : source de vérité réactive
-  count = signal(0);
-
-  // Computed : valeur dérivée, recalculée automatiquement
-  double = computed(() => this.count() * 2);
-}`,
-      },
+      id: 'pc',
+      step: 'Chapitre 02',
+      title: 'Choisir son Ordinateur',
+      subtitle: 'Les clés pour acheter le bon outil de travail.',
+      content: 'Votre ordinateur est votre outil principal. Un choix inadapté peut freiner considérablement votre apprentissage. Comprenez comment chaque composant influe sur votre rapidité de développement afin de faire le meilleur investissement selon vos besoins.',
+      imageUrl: 'https://images.openai.com/static-rsc-4/kKvynqUeCL7OHBaXExERLU6Di0Pj4I3qqZKB9HBTVQEdmfnLyhtGvj7krntdQP8RiHE6v7Ycu3qMfTki_hxDz3quRyfQvNpw5qQXgqAufcVkD_McIcUIJIYEIpNegdgAcB-tIBUAxW_m5u615R_7YzR9onGnbjppGFjCy9A0DDIXbCNFdMSJie1QRF_Pbt0H?purpose=fullsize',
+      details: [
+        'CPU : Coeur de la machine. Visez Intel Core i5/i7, Ryzen 5/7 ou Apple Silicon',
+        'RAM Débutant : 8 Go à 16 Go de mémoire vive pour travailler à l\'aise',
+        'RAM Avancée : 16 Go à 32 Go (indispensable pour Docker, IA, Android Studio)',
+        'SSD : Stockage ultra-rapide NVMe de 512 Go à 1 To (évitez les disques HDD)',
+        'OS Windows : Polyvalent, accessible et idéal pour débuter',
+        'OS macOS & Linux : Les chouchous des environnements professionnels Unix'
+      ]
     },
     {
-      id: 'git',
-      step: 'Étape 03 — Git & GitHub',
-      title: 'Versionner son Code comme un Pro',
-      subtitle: 'Git est indispensable, pas optionnel.',
-      content:
-        "Git est la compétence n°1 qui sépare les débutants des professionnels. Il vous permet de travailler en équipe, de revenir en arrière en cas d'erreur, et de collaborer sur des projets open-source. La maîtrise des branches, des commits et des Pull Requests ouvre la porte à tous les projets du monde.",
+      id: 'system',
+      step: 'Chapitre 03',
+      title: 'Installer son Système',
+      subtitle: 'Préparer et sécuriser son poste de travail.',
+      content: 'Une machine bien configurée évite 80% des tracas techniques futurs. Apprenez à structurer vos répertoires, à configurer vos sauvegardes, à optimiser les pilotes matériels et à maintenir la sécurité de vos fichiers à un niveau professionnel.',
+      imageUrl: 'https://images.openai.com/static-rsc-4/8rgNwJ9scgBCIq4F0kx-RvHrOeyMDJGEQ75nn6e6dovd2VXnX-g9RV41XqRsaSFPrj68WBPw8B7QnP9KYZukciAgT91aXJ4miPA7cxtAki7_up3VFu836WFbmwgWt1ptdpEvPpaBPdtrX7qaLB05fXkedHk_YfDCUJnuWraeTJH9WyK7zHHojg8qPurXTv_O?purpose=fullsize',
+      details: [
+        'Mises à jour : Maintenir son OS et sa carte graphique (GPU) à jour',
+        'Organisation : Créer un dossier racine dédié aux projets (ex: C:/projects/)',
+        'Sauvegardes : Outils automatiques intégrés (OneDrive, iCloud, Time Machine)',
+        'Terminal : Installer un interpréteur moderne (Git Bash, PowerShell 7)',
+        'Drivers & Pilotes : Vérifier le gestionnaire de périphériques',
+        'Antivirus : Utiliser des configurations de protection résidentielles légères'
+      ]
+    },
+    {
+      id: 'software',
+      step: 'Chapitre 04',
+      title: 'Logiciels Indispensables',
+      subtitle: 'La boîte à outils quotidienne du développeur pro.',
+      content: 'Chaque artisan a ses outils. En tant que développeur, vous utiliserez quotidiennement un éditeur de code avancé, un terminal configuré et des utilitaires de test réseau pour concevoir vos programmes de A à Z.',
+      details: [
+        'Éditeurs : Visual Studio Code (le roi de la flexibilité) ou WebStorm',
+        'Terminaux : Windows Terminal (PowerShell) ou Oh My Zsh (Linux/macOS)',
+        'Navigateurs : Chrome et Firefox Developer Edition pour inspecter le DOM',
+        'Conteneurs : Docker pour encapsuler et cloner des bases de données',
+        'API : Postman ou Insomnia pour exécuter et déboguer vos requêtes HTTP',
+        'Maquettes : Figma pour lire et extraire les chartes graphiques de l\'UI'
+      ],
       codeSnippet: {
-        language: 'bash',
-        code: `# Workflow quotidien d'un développeur
-git status              # Voir les fichiers modifiés
-git add .               # Préparer les changements
-git commit -m "feat: ajouter le composant navbar"
+        language: 'json',
+        code: `# Extensions VS Code recommandées
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "eamodio.gitlens",
+    "angular.ng-template"
+  ]
+}`
+      }
+    },
+    {
+      id: 'basics',
+      step: 'Chapitre 05',
+      title: 'Les Bases du Code',
+      subtitle: 'Comprendre le Web et maîtriser les algorithmes.',
+      content: 'Avant de créer des designs complexes, il faut maîtriser la plomberie d\'Internet (DNS, HTTP, relations client-serveur) et les structures logiques communes à tous les langages de programmation informatiques.',
+      details: [
+        'Architecture Web : Routeurs, serveurs web, requêtes HTTP et réponses JSON',
+        'Variables & Types : Stocker et typé des données (String, Number, Array)',
+        'Logique Conditionnelle : Décider des flux d\'exécution (if, else, switch)',
+        'Boucles & Itérations : Répéter des traitements de masse (for, while, map)',
+        'Fonctions : Découper le code en modules réutilisables et testables',
+        'Bonnes Pratiques : Clean Code, lisibilité, et documentation utile'
+      ],
+      codeSnippet: {
+        language: 'javascript',
+        code: `// Exemple d'algorithme simple de calcul de remise
+function calculerRemise(prixTotal, codePromo) {
+  let reduction = 0;
+  
+  if (codePromo === 'BIENVENUE') {
+    reduction = 0.15; // 15% de réduction
+  } else if (codePromo === 'VIP') {
+    reduction = 0.30; // 30% de réduction
+  }
+  
+  return prixTotal * (1 - reduction);
+}
 
-# Travailler sur une nouvelle fonctionnalité
-git checkout -b feature/chatbot-integration
-# ... travail, commits ...
-git push origin feature/chatbot-integration
-
-# Créer une Pull Request sur GitHub
-# (via l'interface web ou GitHub CLI)
-gh pr create --title "Add chatbot" --body "Closes #42"`,
-      },
+const prixFinal = calculerRemise(120, 'BIENVENUE');
+console.log("Prix avec remise :", prixFinal); // 102`
+      }
     },
     {
       id: 'ai',
-      step: 'Étape 04 — IA pour Développeurs',
-      title: "L'IA, votre Co-Pilote de Code",
-      subtitle: "Travailler avec l'IA, pas contre elle.",
-      content:
-        "En 2025, un développeur qui n'utilise pas l'IA travaille deux fois plus lentement. GitHub Copilot, Gemini, et Claude sont vos meilleurs alliés pour générer du code boilerplate, déboguer, rédiger des tests, et comprendre des concepts complexes. L'art est de savoir poser les bonnes questions et de vérifier le code généré.",
+      step: 'Chapitre 06',
+      title: 'Coder avec l\'IA',
+      subtitle: 'L\'art du prompting au service du développement.',
+      content: 'L\'Intelligence Artificielle est un multiplicateur de vitesse de travail exceptionnel. En tant que développeur moderne, vous devez apprendre à rédiger des invites structurées pour concevoir, déboguer et documenter vos applications.',
+      imageUrl: 'https://images.openai.com/static-rsc-4/KSWA6lJlBKDipdJ5_ytM7OIg-3j9UY0M8Y0SsqRauw41G2CaO5gL9ilJVNuPy1W_DvE-p1VoKJIiNNFxh4YuBS-9g-PCtsHIaipFKqnrB-M7x1Sk1cJCBlNuVNOIXIYuHept8vZDkuyqJd65R67dLXaG3QYw_3lpGUsxkQ4STJflxiI27Hk3gtu1je6qhNEG?purpose=fullsize',
+      details: [
+        'ChatGPT & Claude : Vos meilleurs tuteurs pour conceptualiser un algorithme',
+        'GitHub Copilot & Cursor : Des éditeurs intelligents qui écrivent à votre place',
+        'Prompting Structuré : Indiquez le rôle, le contexte et le format attendu',
+        'Résolution de Bugs : Copier l\'erreur de la console pour obtenir un correctif',
+        'Refactoring : Demander à l\'IA d\'optimiser la lisibilité ou les performances',
+        'Vigilance : Toujours relire et tester le code proposé par l\'IA'
+      ],
+      codeSnippet: {
+        language: 'markdown',
+        code: `# Exemple de Prompt de Développeur Moderne
+Agis en tant qu'architecte expert Angular 18.
+Génère un composant standalone réactif gérant un panier d'achat.
+Utilise des Signals pour suivre la quantité totale et le prix calculé.
+Applique des classes Tailwind CSS épurées et modernes.`
+      }
+    },
+    {
+      id: 'git',
+      step: 'Chapitre 07',
+      title: 'Git & Collaboration',
+      subtitle: 'Sauvegarder son historique et collaborer en équipe.',
+      content: 'Git est la clé de voûte de la collaboration technique en entreprise. Il vous permet de voyager dans le temps de votre projet, de proposer des contributions sécurisées et de travailler en équipe via les méthodes Scrum.',
+      details: [
+        'Versionning : Initialiser un projet avec git init et suivre les versions',
+        'Branches : Travailler dans des environnements isolés sans casser la branche main',
+        'GitHub / GitLab : Héberger ses dépôts et collaborer via des Pull Requests',
+        'Gestion des Conflits : Fusionner proprement son code avec celui de ses collègues',
+        'Méthodes Agiles : Comprendre les cycles Scrum, sprints et tickets Jira',
+        'Outils d\'équipe : Discord/Slack (communication) et Notion/Jira (organisation)'
+      ],
+      codeSnippet: {
+        language: 'bash',
+        code: `# Créer une nouvelle branche de fonctionnalité
+git checkout -b feature/chat-minimized
+
+# Ajouter et commiter ses modifications
+git add .
+git commit -m "feat: ajouter l'option de réduction du chatbot"
+
+# Envoyer le code sur GitHub
+git push origin feature/chat-minimized`
+      }
+    },
+    {
+      id: 'backend',
+      step: 'Chapitre 08',
+      title: 'Bases de Données & APIs',
+      subtitle: 'Modéliser les données et les transmettre de manière sécurisée.',
+      content: 'Pour rendre vos applications dynamiques, vous devez connecter votre frontend à des serveurs d\'API capables de lire et stocker des informations de manière sécurisée et persistance dans des bases de données SQL ou NoSQL.',
+      details: [
+        'Bases Relationnelles (SQL) : Stockage strict et robuste (MySQL, PostgreSQL)',
+        'Bases Document (NoSQL) : Données flexibles en JSON (MongoDB, Firestore)',
+        'APIs RESTful : Communiquer via des requêtes HTTP (GET, POST, PUT, DELETE)',
+        'JSON : Le format universel d\'échange de données textuelles',
+        'Sécurité : Authentification moderne avec tokens JWT et chiffrement HTTPS',
+        'Architecture API : Diviser son backend en contrôleurs, modèles et routes'
+      ],
+      codeSnippet: {
+        language: 'javascript',
+        code: `// Route Express.js pour récupérer une astuce par son ID
+app.get('/api/tips/:id', async (req, res) => {
+  try {
+    const tip = await Firestore.collection('tips').doc(req.params.id).get();
+    if (!tip.exists) {
+      return res.status(404).json({ error: 'Astuce introuvable' });
+    }
+    res.json(tip.data());
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});`
+      }
+    },
+    {
+      id: 'project',
+      step: 'Chapitre 09',
+      title: 'Projet Fil Rouge : Ce Site !',
+      subtitle: 'De la maquette au produit final interactif.',
+      content: 'Cette plateforme est l\'illustration parfaite de toutes les compétences d\'un développeur moderne. Pour créer "Modern Developer Guide", nous avons assemblé les technologies les plus demandées en entreprise aujourd\'hui :',
+      imageUrl: 'https://images.openai.com/static-rsc-4/zDEAwVB6FeTlC1VwgBUHOTwOJm3jAHPx31D0x322EZS6ljFReCHnz4Xx505qwYls4xFyLuW_3B-aQnBwZjkcYjzhvoWnWxNPodTKVgkHTRzOuzwm27n4nRLJ5q6e27rXb_qLGkQToEYa1tq-462-7j2eJF_8XzDNFLefekjREhScTX5xP6CRwGN6pcIoET2n?purpose=fullsize',
+      details: [
+        'Figma : Création d\'une maquette minimaliste premium, responsive et aérée',
+        'Angular 18 : Architecture moderne à base de Standalone Components',
+        'Tailwind CSS & Animations GSAP : Un design fluide et des transitions premium',
+        'Angular Signals : Suivi dynamique des j\'aime, de la page active et du chatbot',
+        'Firestore Firestore : Base NoSQL pour stocker et synchroniser les astuces',
+        'Gemini API : Intégration de l\'IA 1.5 Flash pour dialoguer avec notre mentor'
+      ]
     },
     {
       id: 'deploy',
-      step: 'Étape 05 — Déploiement',
-      title: 'Mettre son Application en Production',
-      subtitle: 'De localhost à internet en moins de 5 minutes.',
-      content:
-        "Vercel et Netlify ont révolutionné le déploiement web : en connectant votre dépôt GitHub, chaque push sur main déploie automatiquement votre application. Firebase Hosting est idéal pour les projets Angular avec backend Firebase. Vos utilisateurs peuvent accéder à votre travail en quelques secondes après votre commit.",
+      step: 'Chapitre 10',
+      title: 'Mise en Production & Cloud',
+      subtitle: 'Rendre son travail accessible au monde entier.',
+      content: 'Félicitations ! Vous possédez maintenant les compétences pour concevoir, coder, sécuriser et tester vos projets. La dernière étape est le déploiement sur le Cloud, la mise en place de CI/CD et la promotion de votre portfolio.',
+      details: [
+        'Docker : Créer des images légères pour reproduire son projet partout',
+        'Cloud Hosting : Déployer sur Vercel (frontend) et Firebase (données)',
+        'CI/CD GitHub Actions : Déploiement automatique à chaque git push',
+        'Portfolio : Valoriser ses dépôts open-source sur un site personnel',
+        'Carrière : Configurer un profil LinkedIn, créer des propositions Freelance',
+        'Apprentissage Continu : Pratiquer la veille technique quotidienne'
+      ],
       codeSnippet: {
-        language: 'bash',
-        code: `# Déployer sur Vercel (zéro configuration)
-npm install -g vercel
-vercel deploy
+        language: 'dockerfile',
+        code: `# Dockerfile optimisé pour notre guide Angular
+FROM node:22-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build --configuration=production
 
-# Ou directement via GitHub
-# 1. Connectez vercel.com à votre dépôt GitHub
-# 2. Chaque push = nouveau déploiement automatique
-# 3. Chaque PR = prévisualisation unique (preview URL)
-
-# Build de production Angular
-ng build --configuration production
-# Output dans dist/votre-projet/browser/`,
-      },
-    },
+FROM nginx:alpine
+COPY --from=build /app/dist/modern-developer-guide/browser /usr/share/nginx/html
+EXPOSE 80`
+      }
+    }
   ];
 
   private direction: 'left' | 'right' = 'right';
 
-  ngAfterViewInit() {
-    if (isPlatformBrowser(this.platformId)) {
-      this.animateSlide();
-    }
+  ngAfterViewInit(): void {
+    this.animateSlide();
   }
 
   nextSlide(): void {
