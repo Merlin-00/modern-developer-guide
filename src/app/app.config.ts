@@ -1,4 +1,8 @@
-import { ApplicationConfig, importProvidersFrom, provideZonelessChangeDetection } from '@angular/core';
+import {
+  ApplicationConfig,
+  importProvidersFrom,
+  provideZonelessChangeDetection,
+} from '@angular/core';
 import { provideRouter, withComponentInputBinding, withViewTransitions } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
@@ -9,10 +13,26 @@ import { getFirestore, provideFirestore } from '@angular/fire/firestore';
 // en fournisseurs compatibles avec l'API standalone d'Angular
 import { LucideAngularModule } from 'lucide-angular';
 import {
-  Moon, Sun, Menu, X, BookOpen, Code, Github,
-  ChevronRight, ChevronLeft, CheckCircle, Terminal,
-  MessageCircle, Send, Bot, User,
-  Heart, Share2, MessageSquare, Trash2, LogIn
+  Moon,
+  Sun,
+  Menu,
+  X,
+  BookOpen,
+  Code,
+  Github,
+  ChevronRight,
+  ChevronLeft,
+  CheckCircle,
+  Terminal,
+  MessageCircle,
+  Send,
+  Bot,
+  User,
+  Heart,
+  Share2,
+  MessageSquare,
+  Trash2,
+  LogIn,
 } from 'lucide-angular';
 
 import { routes } from './app.routes';
@@ -28,16 +48,32 @@ export const appConfig: ApplicationConfig = {
     // dans une application Angular standalone — LucideAngularModule.pick() en retourne un.
     importProvidersFrom(
       LucideAngularModule.pick({
-        Moon, Sun, Menu, X, BookOpen, Code, Github,
-        ChevronRight, ChevronLeft, CheckCircle, Terminal,
-        MessageCircle, Send, Bot, User,
-        Heart, Share2, MessageSquare, Trash2, LogIn
-      })
+        Moon,
+        Sun,
+        Menu,
+        X,
+        BookOpen,
+        Code,
+        Github,
+        ChevronRight,
+        ChevronLeft,
+        CheckCircle,
+        Terminal,
+        MessageCircle,
+        Send,
+        Bot,
+        User,
+        Heart,
+        Share2,
+        MessageSquare,
+        Trash2,
+        LogIn,
+      }),
     ),
 
     // Initialisation de Firebase avec les clés de l'environnement
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideAuth(() => getAuth()),
-    provideFirestore(() => getFirestore())
-  ]
+    provideFirestore(() => getFirestore()),
+  ],
 };
