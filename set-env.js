@@ -9,8 +9,8 @@ if (!fs.existsSync(envDir)) {
 const envFile = path.join(envDir, 'environment.ts');
 const devEnvFile = path.join(envDir, 'environment.development.ts');
 
-const firebaseApiKey = process.env.FIREBASE_API_KEY || 'AIzaSyD4w_9E4avOIR2wEall4H0gyia5Pxr_l4g';
-const geminiApiKey = process.env.GEMINI_API_KEY || 'AIzaSyDfS8nG9jDrgPLW8btaSRaqAb1RJGMzkHk';
+const firebaseApiKey = process.env.FIREBASE_API_KEY || '';
+const geminiApiKey = process.env.GEMINI_API_KEY || '';
 
 const content = `export const environment = {
   production: true,
