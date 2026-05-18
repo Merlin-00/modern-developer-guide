@@ -16,7 +16,7 @@ export interface Tip {
     likes: number;
     isEdited?: boolean;
     isDeleted?: boolean;
-    likedBy?: string[];
+    likedByProfiles?: { uid: string; displayName: string; photoURL: string; }[];
 }
 
 export interface GuideSlide {

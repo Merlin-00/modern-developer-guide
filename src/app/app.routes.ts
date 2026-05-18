@@ -12,5 +12,9 @@ export const routes: Routes = [
   {
     path: 'profile',
     loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)
+  },
+  {
+    path: 'tips/:id',
+    loadComponent: () => import('./features/tips/tip-detail/tip-detail.component').then(m => m.TipDetailComponent)
   }
 ];

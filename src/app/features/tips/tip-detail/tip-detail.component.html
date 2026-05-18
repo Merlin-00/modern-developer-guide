@@ -1,0 +1,215 @@
+<div class="max-w-3xl mx-auto px-6 pt-8 pb-16">
+
+    <!-- Bouton de retour -->
+    <div class="mb-6">
+        <a routerLink="/tips"
+            class="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors cursor-pointer group">
+            <lucide-icon name="chevron-left" [size]="16"
+                class="transition-transform group-hover:-translate-x-1"></lucide-icon>
+            Retour aux astuces
+        </a>
+    </div>
+
+    <!-- Squelette de chargement -->
+    @if (isLoading()) {
+    <div class="py-10 animate-pulse">
+        <div class="h-3 bg-gray-200 dark:bg-gray-800 rounded w-24 mb-4"></div>
+        <div class="h-8 bg-gray-200 dark:bg-gray-800 rounded w-3/4 mb-4"></div>
+        <div class="h-4 bg-gray-200 dark:bg-gray-800 rounded w-full mb-3"></div>
+        <div class="h-4 bg-gray-200 dark:bg-gray-800 rounded w-5/6 mb-8"></div>
+        <div class="h-48 bg-gray-200 dark:bg-gray-800 rounded-xl w-full"></div>
+    </div>
+    }
+
+    <!-- Astuce non trouvée -->
+    @else if (notFound()) {
+    <div class="text-center py-16 px-6 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl animate-fade-in">
+        <lucide-icon name="search" [size]="48" class="text-gray-300 dark:text-gray-700 mx-auto mb-4"></lucide-icon>
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Astuce introuvable</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">
+            L'astuce que vous recherchez n'existe pas ou a été supprimée par son auteur.
+        </p>
+        <a routerLink="/tips" class="btn-primary justify-center cursor-pointer text-sm px-5 py-2.5">
+            Retourner aux astuces
+        </a>
+    </div>
+    }
+
+    <!-- Contenu de l'astuce -->
+    @else if (tip(); as currentTip) {
+    <article class="animate-fade-in">
+
+        <!-- En-tête de l'astuce -->
+        <div class="flex items-center gap-3 mb-6">
+            <!-- Avatar de l'auteur -->
+            <div
+                class="relative w-10 h-10 rounded-full overflow-hidden bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold shrink-0">
+                @if (!currentTip.authorAvatar || !loadedImages()[currentTip.id!] || imageErrors()[currentTip.id!]) {
+                <span class="absolute text-sm">{{ currentTip.authorName.charAt(0).toUpperCase() }}</span>
+                }
+                @if (currentTip.authorAvatar && !imageErrors()[currentTip.id!]) {
+                <img [src]="currentTip.authorAvatar" [alt]="currentTip.authorName" referrerpolicy="no-referrer"
+                    class="absolute inset-0 w-full h-full object-cover rounded-full transition-opacity duration-300"
+                    [class.opacity-0]="!loadedImages()[currentTip.id!]" [class.opacity-100]="loadedImages()[currentTip.id!]"
+                    (load)="onImageLoad(currentTip.id!)" (error)="onImageError(currentTip.id!)">
+                }
+            </div>
+            <div>
+                <span class="block text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+                    {{ currentTip.authorName }}
+                </span>
+                <span class="text-xs text-gray-400 dark:text-gray-500">
+                    Publié le {{ formatDate(currentTip.createdAt) | date:'dd MMMM yyyy à HH:mm' }}
+                </span>
+            </div>
+            @if (currentTip.isEdited) {
+            <span
+                class="ml-auto inline-flex items-center gap-0.5 px-2 py-0.5 rounded bg-blue-50/70 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-semibold text-[10px] uppercase tracking-wider">
+                Modifié
+            </span>
+            }
+        </div>
+
+        <!-- Titre & Description -->
+        <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white mb-4 leading-snug">
+            {{ currentTip.title }}
+        </h1>
+        <p class="text-gray-600 dark:text-gray-300 leading-relaxed mb-6 whitespace-pre-wrap">{{ currentTip.description }}</p>
+
+        <!-- Bloc de Code -->
+        @if (currentTip.codeSnippet) {
+        <div class="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800/80 mb-6">
+            <div
+                class="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-gray-200/5 dark:border-gray-800/20">
+                <span class="text-xs font-mono text-gray-400">{{ currentTip.language || 'code' }}</span>
+                <button (click)="copyCode()"
+                    class="text-xs text-gray-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1">
+                    @if (copied()) {
+                    <lucide-icon name="circle-check" [size]="12" class="text-green-400"></lucide-icon>
+                    }
+                    {{ copied() ? 'Copié !' : 'Copier' }}
+                </button>
+            </div>
+            <div class="overflow-x-auto bg-[#0d1117] p-4">
+                <pre class="font-mono text-sm text-gray-300 leading-relaxed"><code [innerHTML]="getHighlightedCode(currentTip.codeSnippet!, currentTip.language!)"></code></pre>
+            </div>
+        </div>
+        }
+
+        <!-- Actions -->
+        <div class="flex items-center gap-5 border-t border-b border-gray-100 dark:border-gray-800/60 py-4 mb-8">
+            <div class="relative">
+                <button (click)="toggleLike()"
+                    class="flex items-center gap-1.5 text-sm transition-colors cursor-pointer font-semibold"
+                    [class.text-red-500]="isLiked()" [class.text-gray-400]="!isLiked()"
+                    [class.hover:text-red-500]="true">
+                    <lucide-icon name="heart" [size]="18"
+                        [style.fill]="isLiked() ? 'currentColor' : 'none'"></lucide-icon>
+                    J'aime ({{ currentTip.likes || 0 }})
+                </button>
+
+                <!-- Tooltip pour les astuces par défaut -->
+                @if (showDefaultTipTooltip()) {
+                <div
+                    class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 dark:bg-gray-800 text-white text-xs font-semibold rounded-lg shadow-lg whitespace-nowrap z-10 animate-fade-in border border-gray-800/20">
+                    Astuce guide de base (non modifiable)
+                </div>
+                }
+
+                <!-- Tooltip pour connexion requise -->
+                @if (showAuthTooltip()) {
+                <a routerLink="/profile"
+                    class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-2.5 bg-gray-950 hover:bg-gray-900 dark:bg-gray-900 dark:hover:bg-gray-800 text-white text-xs font-bold rounded-xl shadow-xl whitespace-nowrap z-10 animate-fade-in border border-gray-200/10 flex items-center gap-2 transition-all cursor-pointer hover:scale-105 active:scale-95 no-underline">
+                    <lucide-icon name="log-in" [size]="14" class="text-blue-400"></lucide-icon>
+                    <span>Se connecter pour aimer cette astuce</span>
+                </a>
+                }
+            </div>
+
+            <button (click)="shareTip()"
+                class="flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer font-semibold">
+                <lucide-icon name="share-2" [size]="18"></lucide-icon>
+                Partager l'astuce
+            </button>
+        </div>
+
+        <!-- Section "Aimé par" (Noms et avatars) -->
+        <div class="mt-4">
+            <h4 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
+                Développeurs ayant aimé cette astuce ({{ currentTip.likes || 0 }})
+            </h4>
+
+            @if (currentTip.likedByProfiles && currentTip.likedByProfiles.length > 0) {
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-wrap gap-2.5">
+                    @for (profile of paginatedLikes(); track profile.uid) {
+                    <div
+                        class="flex items-center gap-2 bg-gray-50 dark:bg-[#0d0d0d] border border-gray-100 dark:border-gray-800/50 pl-2 pr-3.5 py-1.5 rounded-xl hover:border-gray-200 dark:hover:border-gray-700 transition-all hover:scale-[1.03] duration-200 shadow-sm cursor-default">
+                        
+                        <!-- Avatar -->
+                        <div
+                            class="relative w-6 h-6 rounded-full overflow-hidden bg-blue-50 dark:bg-blue-950/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold shrink-0 text-[10px]">
+                            @if (!profile.photoURL || !loadedImages()[profile.uid] || imageErrors()[profile.uid]) {
+                            <span class="absolute">{{ profile.displayName.charAt(0).toUpperCase() }}</span>
+                            }
+                            @if (profile.photoURL && !imageErrors()[profile.uid]) {
+                            <img [src]="profile.photoURL" [alt]="profile.displayName" referrerpolicy="no-referrer"
+                                class="absolute inset-0 w-full h-full object-cover rounded-full transition-opacity duration-300"
+                                [class.opacity-0]="!loadedImages()[profile.uid]" [class.opacity-100]="loadedImages()[profile.uid]"
+                                (load)="onImageLoad(profile.uid)" (error)="onImageError(profile.uid)">
+                            }
+                        </div>
+                        
+                        <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
+                            {{ profile.displayName }}
+                        </span>
+                    </div>
+                    }
+                </div>
+
+                <!-- Pagination des Likes -->
+                @if (totalLikesPages() > 1) {
+                <div class="flex items-center justify-between border-t border-gray-100 dark:border-gray-800/40 pt-4 mt-2">
+                    <span class="text-xs text-gray-400 dark:text-gray-500 font-medium">
+                        Affichage de {{ (currentPageLikes() - 1) * pageSizeLikes + 1 }} à {{ getMin(currentPageLikes() * pageSizeLikes, currentTip.likedByProfiles.length) }} sur {{ currentTip.likedByProfiles.length }}
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <button (click)="prevPageLikes()" [disabled]="currentPageLikes() === 1"
+                            class="p-1.5 rounded-lg border border-gray-100 dark:border-gray-800/80 bg-white dark:bg-gray-900 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-sm flex items-center justify-center">
+                            <lucide-icon name="chevron-left" [size]="14"></lucide-icon>
+                        </button>
+                        <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 px-1">
+                            Page {{ currentPageLikes() }} sur {{ totalLikesPages() }}
+                        </span>
+                        <button (click)="nextPageLikes()" [disabled]="currentPageLikes() === totalLikesPages()"
+                            class="p-1.5 rounded-lg border border-gray-100 dark:border-gray-800/80 bg-white dark:bg-gray-900 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-sm flex items-center justify-center">
+                            <lucide-icon name="chevron-right" [size]="14"></lucide-icon>
+                        </button>
+                    </div>
+                </div>
+                }
+            </div>
+            } @else {
+            <div class="p-6 text-center border border-dashed border-gray-150 dark:border-gray-800/50 rounded-xl bg-gray-50/50 dark:bg-[#070707]/30">
+                <p class="text-xs text-gray-400 dark:text-gray-500">
+                    Aucun vote pour le moment. Soyez le premier à soutenir cette astuce !
+                </p>
+            </div>
+            }
+        </div>
+
+    </article>
+    }
+
+    <!-- Toast Notification Volante -->
+    @if (toastMessage()) {
+    <div
+        class="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-gray-950 dark:bg-gray-900 text-white text-sm font-semibold rounded-2xl shadow-2xl border border-gray-200/10 animate-slide-up whitespace-nowrap">
+        <div class="w-8 h-8 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center">
+            <lucide-icon name="circle-check" [size]="16"></lucide-icon>
+        </div>
+        <span>{{ toastMessage() }}</span>
+    </div>
+    }
+
+</div>

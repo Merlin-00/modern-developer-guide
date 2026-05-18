@@ -184,7 +184,12 @@ export class TipsComponent implements OnInit, OnDestroy {
             this.paginatedTips.update((all) =>
               all.map((t) =>
                 t.id === updatedTip.id
-                  ? { ...t, likes: updatedTip.likes, likedBy: updatedTip.likedBy, isDeleted: updatedTip.isDeleted }
+                  ? {
+                      ...t,
+                      likes: updatedTip.likes,
+                      likedByProfiles: updatedTip.likedByProfiles,
+                      isDeleted: updatedTip.isDeleted
+                    }
                   : t
               )
             );
@@ -250,7 +255,7 @@ export class TipsComponent implements OnInit, OnDestroy {
       // Rechercher le tip dans nos astuces paginées pour lire son état en temps réel
       const tip = this.paginatedTips().find(t => t.id === tipId);
       if (tip) {
-        return !!(tip.likedBy && Array.isArray(tip.likedBy) && tip.likedBy.includes(currentUserId));
+        return !!(tip.likedByProfiles && Array.isArray(tip.likedByProfiles) && tip.likedByProfiles.some(p => p.uid === currentUserId));
       }
     }
     return this.likedTipIds().includes(tipId);
@@ -264,14 +269,15 @@ export class TipsComponent implements OnInit, OnDestroy {
     }
     if (!tip.id) return;
 
-    const currentUserId = this.authService.currentUser()?.uid;
-    if (!currentUserId) {
+    const currentUser = this.authService.currentUser();
+    if (!currentUser) {
       // Afficher le tooltip invitant l'utilisateur sans compte à se connecter/créer un compte
       this.showAuthTooltip.set(tip.id);
       setTimeout(() => this.showAuthTooltip.set(null), 3000);
       return;
     }
 
+    const currentUserId = currentUser.uid;
     const isAlreadyLiked = this.isLiked(tip.id);
 
     // 1. Mise à jour optimiste et réactive locale
@@ -279,24 +285,28 @@ export class TipsComponent implements OnInit, OnDestroy {
       isAlreadyLiked ? ids.filter((id) => id !== tip.id) : [...ids, tip.id!]
     );
 
-    // 2. Mise à jour optimiste et réactive de likedBy et du count de likes dans paginatedTips
+    // 2. Mise à jour optimiste et réactive de likedByProfiles et du count de likes dans paginatedTips
     this.paginatedTips.update((all) =>
       all.map((t) => {
         if (t.id === tip.id) {
-          let updatedLikedBy = t.likedBy ? [...t.likedBy] : [];
-          if (currentUserId) {
+          let updatedLikedByProfiles = t.likedByProfiles ? [...t.likedByProfiles] : [];
+          if (currentUser) {
             if (isAlreadyLiked) {
-              updatedLikedBy = updatedLikedBy.filter(uid => uid !== currentUserId);
+              updatedLikedByProfiles = updatedLikedByProfiles.filter(p => p.uid !== currentUserId);
             } else {
-              if (!updatedLikedBy.includes(currentUserId)) {
-                updatedLikedBy.push(currentUserId);
+              if (!updatedLikedByProfiles.some(p => p.uid === currentUserId)) {
+                updatedLikedByProfiles.push({
+                  uid: currentUser.uid,
+                  displayName: currentUser.displayName || 'Anonyme',
+                  photoURL: currentUser.photoURL || ''
+                });
               }
             }
           }
           return {
             ...t,
             likes: Math.max(0, (t.likes || 0) + (isAlreadyLiked ? -1 : 1)),
-            likedBy: updatedLikedBy
+            likedByProfiles: updatedLikedByProfiles
           };
         }
         return t;
@@ -310,13 +320,17 @@ export class TipsComponent implements OnInit, OnDestroy {
     }
 
     // 4. Sauvegarde concurrente-safe sur Firestore
-    await this.tipService.likeTip(tip.id, !isAlreadyLiked, currentUserId).catch(() => {
+    await this.tipService.likeTip(tip.id, !isAlreadyLiked, {
+      uid: currentUser.uid,
+      displayName: currentUser.displayName,
+      photoURL: currentUser.photoURL
+    }).catch(() => {
       // Rollback en cas d'échec
       this.likedTipIds.update((ids) =>
         isAlreadyLiked ? [...ids, tip.id!] : ids.filter((id) => id !== tip.id)
       );
       this.paginatedTips.update((all) =>
-        all.map((t) => t.id === tip.id ? { ...t, likes: tip.likes, likedBy: tip.likedBy } : t)
+        all.map((t) => t.id === tip.id ? { ...t, likes: tip.likes, likedByProfiles: tip.likedByProfiles } : t)
       );
     });
   }
@@ -338,15 +352,16 @@ export class TipsComponent implements OnInit, OnDestroy {
   }
 
   shareTip(tip: Tip): void {
+    const tipUrl = `${window.location.origin}/tips/${tip.id}`;
     if (navigator.share) {
       navigator.share({
         title: tip.title,
         text: tip.description,
-        url: window.location.href,
+        url: tipUrl,
       }).catch(() => { });
     } else {
-      navigator.clipboard.writeText(`${tip.title}\n\n${tip.description}`).then(() => {
-        this.toastMessage.set('Contenu de l\'astuce copié !');
+      navigator.clipboard.writeText(tipUrl).then(() => {
+        this.toastMessage.set('Lien de l\'astuce copié dans le presse-papiers !');
         setTimeout(() => this.toastMessage.set(null), 3000);
       });
     }

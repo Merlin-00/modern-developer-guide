@@ -226,8 +226,8 @@
                 @for (tip of myTips(); track tip.id) {
                 <div class="py-5 group flex items-start justify-between gap-4">
                     <div class="flex-1">
-                        <h4 class="text-base font-bold text-gray-900 dark:text-white mb-1">
-                            {{ tip.title }}
+                        <h4 class="text-base font-bold text-gray-900 dark:text-white mb-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <a [routerLink]="['/tips', tip.id]" class="cursor-pointer no-underline">{{ tip.title }}</a>
                         </h4>
                         <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
                             {{ tip.description }}

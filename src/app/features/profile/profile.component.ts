@@ -8,6 +8,7 @@ import {
   OnInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/services/firebases/auth.service';
@@ -18,7 +19,7 @@ import { Tip } from '../../core/models/common.model';
 @Component({
   selector: 'app-profile',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule, ConfirmModalComponent],
+  imports: [CommonModule, RouterModule, ReactiveFormsModule, LucideAngularModule, ConfirmModalComponent],
   templateUrl: './profile.component.html',
 })
 export class ProfileComponent implements OnInit {

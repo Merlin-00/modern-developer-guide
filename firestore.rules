@@ -13,10 +13,10 @@ service cloud.firestore {
       // Seul l'auteur peut supprimer son astuce
       allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
 
-      // L'auteur peut modifier son astuce, mais les autres utilisateurs connectés peuvent uniquement liker/unliker (modifier uniquement 'likes' et 'likedBy')
+      // L'auteur peut modifier son astuce, mais les autres utilisateurs connectés peuvent uniquement liker/unliker (modifier uniquement 'likes' et 'likedByProfiles')
       allow update: if request.auth != null && (
         resource.data.authorId == request.auth.uid ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'likedBy'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'likedByProfiles'])
       );
     }
   }

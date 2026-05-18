@@ -17,7 +17,8 @@ import {
   limit,
   arrayUnion,
   arrayRemove,
-  onSnapshot
+  onSnapshot,
+  getDoc
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { Tip } from '../../models/common.model';
@@ -170,16 +171,37 @@ export class TipService {
   }
 
   // Incrémenter ou décrémenter les likes de manière concurrente (safe)
-  async likeTip(id: string, isLike: boolean, userId?: string | null) {
+  async likeTip(
+    id: string,
+    isLike: boolean,
+    user?: { uid: string; displayName: string | null; photoURL: string | null; } | null
+  ) {
     return runInInjectionContext(this.injector, async () => {
       const tipRef = doc(this.firestore, `tips/${id}`);
       const updates: any = {
         likes: increment(isLike ? 1 : -1)
       };
-      if (userId) {
-        updates.likedBy = isLike ? arrayUnion(userId) : arrayRemove(userId);
+      if (user) {
+        const profileObj = {
+          uid: user.uid,
+          displayName: user.displayName || 'Anonyme',
+          photoURL: user.photoURL || ''
+        };
+        updates.likedByProfiles = isLike ? arrayUnion(profileObj) : arrayRemove(profileObj);
       }
       return updateDoc(tipRef, updates);
+    });
+  }
+
+  // Récupérer une astuce spécifique par son ID
+  async getTipById(id: string): Promise<Tip | null> {
+    return runInInjectionContext(this.injector, async () => {
+      const tipRef = doc(this.firestore, `tips/${id}`);
+      const docSnap = await getDoc(tipRef);
+      if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as Tip;
+      }
+      return null;
     });
   }
 
