@@ -73,6 +73,22 @@ Ce projet est optimisé pour être déployé très facilement sur Vercel, avec u
    - `GEMINI_API_KEY`
 4. Cliquez sur **Deploy** (ou faites un *Redeploy* si le premier a échoué). Angular sera compilé automatiquement (`ng build`) et mis en ligne avec son Service Worker.
 
+### 🔧 Dépannage & Erreurs Fréquentes au Déploiement
+
+Il est très courant de rencontrer quelques frustrations de configuration lors du premier déploiement en tant que collaborateur. Voici comment les résoudre :
+
+1. **Erreur : "The current domain is not authorized for OAuth operations"**
+   - **Cause :** Firebase Auth bloque les connexions Google depuis des domaines inconnus (comme votre URL Vercel).
+   - **Solution :** Allez dans la [Console Firebase](https://console.firebase.google.com/) > *Authentication* > *Settings* > *Authorized domains*. Cliquez sur *Add domain* et ajoutez exactement votre domaine Vercel (ex: `votre-app.vercel.app`).
+
+2. **Erreur : "Firebase: Error (auth/invalid-api-key)"**
+   - **Cause :** L'application a été compilée avec des clés d'API vides. Vous avez probablement ajouté les variables d'environnement dans Vercel *après* que l'application ait été déployée une première fois.
+   - **Solution :** Sur Vercel, allez dans l'onglet *Deployments*, cliquez sur les 3 petits points à droite du dernier déploiement et choisissez **Redeploy**. Vercel relancera la compilation en injectant cette fois-ci les bonnes clés.
+
+3. **Erreur : "API Gemini 403 (Forbidden)" dans la console**
+   - **Cause :** Soit votre clé Gemini a des restrictions (ex: bloque les requêtes serveurs Vercel), soit l'accès n'est pas autorisé.
+   - **Solution :** Sur [Google AI Studio](https://aistudio.google.com/app/apikey), générez une *nouvelle* clé API sans aucune restriction, mettez à jour la variable `GEMINI_API_KEY` dans Vercel, et faites un "Redeploy".
+
 ---
 
 ## 🤝 Contribution & Conventions
