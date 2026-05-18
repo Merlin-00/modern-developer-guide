@@ -2,7 +2,6 @@ import {
   Component,
   inject,
   signal,
-  computed,
   ChangeDetectionStrategy,
   PLATFORM_ID,
   OnInit,
@@ -14,311 +13,19 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { LucideAngularModule } from 'lucide-angular';
-import { TipService, Tip } from '../../core/services/tip.service';
-import { AuthService } from '../../core/services/auth.service';
-import { catchError, startWith, map, debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { of, Subject } from 'rxjs';
+import { TipService } from '../../core/services/firebases/tip.service';
+import { AuthService } from '../../core/services/firebases/auth.service';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { Tip } from '../../core/models/common.model';
+import { DEFAULT_TIPS } from '../../core/constants/content.constants';
 
-// Astuces statiques par défaut — affichées tant que Firestore n'est pas disponible
-// Astuces statiques par défaut — servent de guide pour apprendre à utiliser le site
-const DEFAULT_TIPS: Tip[] = [
-  {
-    id: 'default-1',
-    title: 'Bienvenue sur Modern Developer Guide (MDG) !',
-    description: 'Découvrez notre plateforme d\'apprentissage et de partage pour les développeurs modernes ! Vous êtes ici dans l\'espace communautaire. Lisez le Guide théorique pour acquérir les bases, aimez les astuces de vos confrères ou publiez vos propres snippets !',
-    codeSnippet: `# Bienvenue sur MDG !
-# 1. Parcourez l'onglet "Le Guide" pour maîtriser les bases d'Angular
-# 2. Visitez l'onglet "Profil" pour vous connecter avec votre compte Google
-# 3. Publiez des astuces claires et utiles pour aider la communauté !`,
-    language: 'bash',
-    authorId: 'system',
-    authorName: 'MDG Team',
-    authorAvatar: '',
-    likes: 0,
-    createdAt: '2026-05-01T10:00:00Z',
-  },
-  {
-    id: 'default-2',
-    title: 'Comment partager une astuce efficace et populaire',
-    description: 'Pour que votre astuce soit populaire et reçoive un maximum de likes, donnez-lui un titre descriptif court et expliquez clairement le problème résolu. Ajoutez un snippet de code propre et choisissez le bon langage dans le sélecteur pour activer la coloration syntaxique automatique.',
-    codeSnippet: `// Exemple d'astuce propre et structurée
-export interface DevTip {
-  title: string;       // Titre concis (ex: Centrer en CSS)
-  description: string; // Explication claire du concept
-  codeSnippet: string; // Bloc de code prêt à l'emploi
-  language: string;    // TypeScript, HTML, CSS, Bash...
-}`,
-    language: 'typescript',
-    authorId: 'system',
-    authorName: 'MDG Team',
-    authorAvatar: '',
-    likes: 0,
-    createdAt: '2026-05-02T11:00:00Z',
-  },
-  {
-    id: 'default-3',
-    title: 'Gérer et modifier vos astuces partagées en un clin d\'œil',
-    description: 'Vous avez fait une erreur dans une de vos publications ? Aucun problème ! Rendez-vous sur votre onglet "Profil". En bas de la page, vous retrouverez toutes vos astuces publiées. Cliquez sur l\'icône de crayon (Modifier) pour charger le formulaire, ajuster le contenu, puis cliquez sur "Enregistrer".',
-    codeSnippet: `# Comment gérer une astuce :
-# 1. Connectez-vous sur votre espace "Profil"
-# 2. Repérez l'icône "Crayon" pour modifier en un clic (scroll automatique)
-# 3. Utilisez l'icône "Corbeille" pour supprimer définitivement`,
-    language: 'bash',
-    authorId: 'system',
-    authorName: 'MDG Team',
-    authorAvatar: '',
-    likes: 0,
-    createdAt: '2026-05-03T12:00:00Z',
-  },
-  {
-    id: 'default-4',
-    title: 'Interagir avec la communauté : Likes et partages',
-    description: 'La communauté MDG grandit grâce à vos interactions ! Si vous trouvez une astuce utile, cliquez sur l\'icône de cœur pour lui attribuer un like. Vous pouvez aussi copier le code snippet en un clic avec le bouton "Copier" ou utiliser "Partager" pour envoyer le lien de la page !',
-    codeSnippet: `// Comment interagir avec la communauté MDG
-function reactToTip(tip) {
-  if (tip.isAwesome) {
-    likeTip(tip.id); // Ajoute un like instantané
-    shareWithFriends(tip); // Partage avec vos collaborateurs
-  }
-}`,
-    language: 'javascript',
-    authorId: 'system',
-    authorName: 'MDG Team',
-    authorAvatar: '',
-    likes: 0,
-    createdAt: '2026-05-04T13:00:00Z',
-  },
-];
 
 @Component({
   selector: 'app-tips',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterModule, LucideAngularModule],
-  template: `
-    <div class="max-w-3xl mx-auto px-6 pt-8 pb-16">
-
-      <!-- En-tête de page -->
-      <div class="mb-6 border-b border-gray-100 dark:border-gray-800/60 pb-6">
-        <!-- Badge au-dessus (uniquement sur PC) -->
-        <div class="hidden md:inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-2">
-          <span class="w-6 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
-          Communauté
-        </div>
-
-        <!-- Ligne Titre & Bouton -->
-        <div class="flex items-center justify-between gap-4 mb-3 md:mb-4">
-          <h1 class="text-2xl md:text-4xl font-extrabold text-gray-900 dark:text-white leading-tight">
-            <span class="hidden md:inline">Astuces de Développeurs</span>
-            <span class="inline md:hidden">Astuces</span>
-          </h1>
-          
-          <div class="shrink-0">
-            <a routerLink="/profile" class="btn-primary justify-center cursor-pointer text-xs md:text-sm px-3 md:px-5 py-2 md:py-2.5">
-              <lucide-icon name="message-square" [size]="14" class="md:hidden mr-1"></lucide-icon>
-              <lucide-icon name="message-square" [size]="16" class="hidden md:inline mr-1"></lucide-icon>
-              <span class="hidden sm:inline">Partager une astuce</span>
-              <span class="inline sm:hidden">Partager</span>
-            </a>
-          </div>
-        </div>
-
-        <!-- Description en dessous -->
-        <p class="text-xs md:text-base text-gray-500 dark:text-gray-400">
-          <span class="hidden md:inline">Découvrez les snippets, astuces et bonnes pratiques partagés par la communauté.</span>
-          <span class="inline md:hidden">Snippets et astuces de la communauté.</span>
-        </p>
-      </div>
-
-      <!-- Filtres et Recherche -->
-      <div class="mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
-        
-        <!-- Barre de recherche -->
-        <div class="relative w-full md:max-w-md">
-          <lucide-icon name="terminal" [size]="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"></lucide-icon>
-          <input
-            type="text"
-            (input)="onSearchInput($event)"
-            placeholder="Rechercher par langage (ex: angular, css) ou par titre..."
-            class="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#0f0f0f] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all">
-        </div>
-
-        <!-- Onglets de tri -->
-        <div class="flex items-center w-full md:w-auto bg-gray-50 dark:bg-[#0f0f0f] p-1 rounded-xl border border-gray-200 dark:border-gray-800">
-          <button
-            (click)="setSortBy('likes')"
-            [class.bg-blue-50/70]="sortBy() === 'likes'"
-            [class.dark:bg-blue-950/25]="sortBy() === 'likes'"
-            [class.text-blue-600]="sortBy() === 'likes'"
-            [class.dark:text-blue-400]="sortBy() === 'likes'"
-            [class.text-gray-500]="sortBy() !== 'likes'"
-            class="flex-1 md:flex-initial text-center px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer">
-            Plus Populaires
-          </button>
-          <button
-            (click)="setSortBy('createdAt')"
-            [class.bg-blue-50/70]="sortBy() === 'createdAt'"
-            [class.dark:bg-blue-950/25]="sortBy() === 'createdAt'"
-            [class.text-blue-600]="sortBy() === 'createdAt'"
-            [class.dark:text-blue-400]="sortBy() === 'createdAt'"
-            [class.text-gray-500]="sortBy() !== 'createdAt'"
-            class="flex-1 md:flex-initial text-center px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer">
-            Plus Récents
-          </button>
-        </div>
-      </div>
-
-      <!-- Liste des astuces -->
-      @if (isLoading()) {
-        <!-- Squelette de chargement -->
-        <div class="flex flex-col gap-8">
-          @for (i of [1,2,3]; track i) {
-            <div class="py-10 animate-pulse">
-              <div class="h-3 bg-gray-200 dark:bg-gray-800 rounded w-24 mb-4"></div>
-              <div class="h-6 bg-gray-200 dark:bg-gray-800 rounded w-3/4 mb-3"></div>
-              <div class="h-4 bg-gray-200 dark:bg-gray-800 rounded w-full mb-2"></div>
-              <div class="h-4 bg-gray-200 dark:bg-gray-800 rounded w-5/6"></div>
-            </div>
-          }
-        </div>
-      } @else {
-        @if (paginatedTips().length > 0) {
-          <div class="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
-            @for (tip of paginatedTips(); track tip.id) {
-              <article class="py-6 group">
-
-                <!-- Auteur -->
-                <div class="flex items-center gap-3 mb-4">
-                  <!-- Avatar du créateur avec placeholder -->
-                  <div class="relative w-8 h-8 rounded-full overflow-hidden bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold shrink-0">
-                    <!-- Affiche la lettre en cas de chargement, d'erreur ou d'absence d'avatar -->
-                    @if (!tip.authorAvatar || !loadedImages()[tip.id!] || imageErrors()[tip.id!]) {
-                      <span class="absolute text-xs">{{ tip.authorName.charAt(0).toUpperCase() }}</span>
-                    }
-                    
-                    @if (tip.authorAvatar && !imageErrors()[tip.id!]) {
-                      <img 
-                        [src]="tip.authorAvatar" 
-                        [alt]="tip.authorName" 
-                        referrerpolicy="no-referrer"
-                        class="absolute inset-0 w-full h-full object-cover rounded-full transition-opacity duration-300"
-                        [class.opacity-0]="!loadedImages()[tip.id!]"
-                        [class.opacity-100]="loadedImages()[tip.id!]"
-                        (load)="onImageLoad(tip.id!)"
-                        (error)="onImageError(tip.id!)"
-                      >
-                    }
-                  </div>
-                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ tip.authorName }}</span>
-                  <span class="text-xs text-gray-400 dark:text-gray-500 ml-2">
-                    • {{ formatDate(tip.createdAt) | date:'dd MMM yyyy' }}
-                  </span>
-                  @if (tip.isEdited) {
-                    <span class="ml-2 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-50/70 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-semibold text-[10px]">
-                      Modifié
-                    </span>
-                  }
-                </div>
-
-                <!-- Titre & description -->
-                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-3">{{ tip.title }}</h3>
-                <p class="text-gray-600 dark:text-gray-400 leading-relaxed mb-5 whitespace-pre-wrap">{{ tip.description }}</p>
-
-                <!-- Bloc de code -->
-                @if (tip.codeSnippet) {
-                  <div class="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800/80 mb-6">
-                    <div class="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-gray-200/5 dark:border-gray-800/20">
-                      <span class="text-xs font-mono text-gray-400">{{ tip.language || 'code' }}</span>
-                      <button (click)="copyCode(tip.codeSnippet!, tip.id!)" class="text-xs text-gray-400 hover:text-white transition-colors cursor-pointer">
-                        {{ copiedId() === tip.id ? '✓ Copié' : 'Copier' }}
-                      </button>
-                    </div>
-                    <div class="overflow-x-auto bg-[#0d1117] p-4">
-                      <pre class="font-mono text-sm text-gray-300 leading-relaxed"><code [innerHTML]="getHighlightedCode(tip.codeSnippet!, tip.language!)"></code></pre>
-                    </div>
-                  </div>
-                }
-
-                <!-- Actions -->
-                <div class="flex items-center gap-5">
-                  <div class="relative">
-                    <button
-                      (click)="likeTip(tip)"
-                      class="flex items-center gap-1.5 text-sm transition-colors cursor-pointer"
-                      [class.text-red-500]="isLiked(tip.id!)"
-                      [class.text-gray-400]="!isLiked(tip.id!)"
-                      [class.hover:text-red-500]="true">
-                      <lucide-icon name="heart" [size]="16" [style.fill]="isLiked(tip.id!) ? 'currentColor' : 'none'"></lucide-icon>
-                      {{ tip.likes || 0 }}
-                    </button>
-                    
-                    <!-- Tooltip pour les astuces par défaut -->
-                    @if (showDefaultTipTooltip() === tip.id) {
-                      <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 dark:bg-gray-800 text-white text-xs font-semibold rounded-lg shadow-lg whitespace-nowrap z-10 animate-fade-in border border-gray-800/20">
-                        Astuce guide de base (non modifiable)
-                      </div>
-                    }
-
-                    <!-- Tooltip pour connexion requise (cliquable pour rediriger vers la connexion) -->
-                    @if (showAuthTooltip() === tip.id) {
-                      <a routerLink="/profile" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-2.5 bg-gray-950 hover:bg-gray-900 dark:bg-gray-900 dark:hover:bg-gray-800 text-white text-xs font-bold rounded-xl shadow-xl whitespace-nowrap z-10 animate-fade-in border border-gray-200/10 flex items-center gap-2 transition-all cursor-pointer hover:scale-105 active:scale-95 no-underline">
-                        <lucide-icon name="log-in" [size]="14" class="text-blue-400"></lucide-icon>
-                        <span>Se connecter pour aimer cette astuce</span>
-                      </a>
-                    }
-                  </div>
-
-                  <button (click)="shareTip(tip)" class="flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer">
-                    <lucide-icon name="share-2" [size]="16"></lucide-icon>
-                    Partager
-                  </button>
-                </div>
-              </article>
-            }
-          </div>
-
-          <!-- Contrôles de pagination -->
-          @if (totalPages() > 1) {
-            <div class="mt-12 pt-8 border-t border-gray-100 dark:border-gray-800/60 flex items-center justify-between">
-              <button
-                (click)="prevPage()"
-                [disabled]="currentPage() === 1"
-                class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 text-sm font-medium cursor-pointer">
-                <lucide-icon name="chevron-left" [size]="16"></lucide-icon>
-                Précédent
-              </button>
-              
-              <span class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Page {{ currentPage() }} sur {{ totalPages() }}
-              </span>
-
-              <button
-                (click)="nextPage()"
-                [disabled]="currentPage() === totalPages()"
-                class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 text-sm font-medium cursor-pointer">
-                Suivant
-                <lucide-icon name="chevron-right" [size]="16"></lucide-icon>
-              </button>
-            </div>
-          }
-        } @else {
-          <!-- Aucun résultat -->
-          <div class="text-center py-16 px-6 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl animate-fade-in">
-            <lucide-icon name="search" [size]="44" class="text-gray-300 dark:text-gray-700 mx-auto mb-4"></lucide-icon>
-            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Aucune astuce trouvée</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-              
-                Aucun résultat ne correspond à votre recherche. Essayez d'autres mots-clés.
-              @if (!(searchQuery().trim())) {
-                Soyez le premier à partager une astuce avec la communauté dans votre onglet Profil !
-              }
-            </p>
-          </div>
-        }
-      }
-
-    </div>
-  `,
+  templateUrl: './tips.component.html',
 })
 export class TipsComponent implements OnInit, OnDestroy {
   authService = inject(AuthService);
@@ -330,6 +37,7 @@ export class TipsComponent implements OnInit, OnDestroy {
   likedTipIds = signal<string[]>([]);
   showDefaultTipTooltip = signal<string | null>(null);
   showAuthTooltip = signal<string | null>(null);
+  toastMessage = signal<string | null>(null);
   isLoading = signal<boolean>(true);
 
   private tipSubscriptions: (() => void)[] = [];
@@ -638,7 +346,8 @@ export class TipsComponent implements OnInit, OnDestroy {
       }).catch(() => { });
     } else {
       navigator.clipboard.writeText(`${tip.title}\n\n${tip.description}`).then(() => {
-        alert('Contenu de l\'astuce copié dans le presse-papiers !');
+        this.toastMessage.set('Contenu de l\'astuce copié !');
+        setTimeout(() => this.toastMessage.set(null), 3000);
       });
     }
   }

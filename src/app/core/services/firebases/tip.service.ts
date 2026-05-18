@@ -1,16 +1,14 @@
 import { Injectable, inject } from '@angular/core';
-import { 
-  Firestore, 
-  collection, 
-  collectionData, 
-  addDoc, 
-  doc, 
-  deleteDoc, 
-  updateDoc, 
-  query, 
-  orderBy, 
-  serverTimestamp, 
-  writeBatch,
+import {
+  Firestore,
+  collection,
+  collectionData,
+  addDoc,
+  doc,
+  updateDoc,
+  query,
+  orderBy,
+  serverTimestamp,
   increment,
   getDocs,
   getCountFromServer,
@@ -22,22 +20,7 @@ import {
   onSnapshot
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
-
-export interface Tip {
-  id?: string;
-  title: string;
-  description: string;
-  codeSnippet?: string;
-  language?: string;
-  authorId: string;
-  authorName: string;
-  authorAvatar: string;
-  createdAt?: any;
-  likes: number;
-  isEdited?: boolean;
-  isDeleted?: boolean;
-  likedBy?: string[];
-}
+import { Tip } from '../../models/common.model';
 
 @Injectable({
   providedIn: 'root'
@@ -46,7 +29,7 @@ export class TipService {
   private firestore: Firestore = inject(Firestore);
   private tipsCollection = collection(this.firestore, 'tips');
 
-  
+
 
   // Récupérer les astuces paginées côté serveur (performances optimales et à la demande)
   async getTipsPaginated(options: {
@@ -58,11 +41,11 @@ export class TipService {
   }) {
     const buildConstraints = (includeSecondarySort: boolean) => {
       let constraints: any[] = [];
-      
+
       if (options.authorId) {
         constraints.push(where('authorId', '==', options.authorId));
       }
-      
+
       let isSearchActive = false;
       if (options.searchQuery) {
         const search = options.searchQuery.trim();
@@ -76,7 +59,7 @@ export class TipService {
           }
         }
       }
-      
+
       if (isSearchActive) {
         constraints.push(orderBy('title', 'asc'));
       } else {
@@ -89,18 +72,18 @@ export class TipService {
           constraints.push(orderBy('createdAt', 'desc'));
         }
       }
-      
+
       if (options.startAfterDoc) {
         constraints.push(startAfter(options.startAfterDoc));
       }
-      
+
       constraints.push(limit(options.pageSize));
       return { constraints, isSearchActive };
     };
 
     const { constraints, isSearchActive } = buildConstraints(true);
     const q = query(this.tipsCollection, ...constraints);
-    
+
     let docsSnapshot;
     try {
       docsSnapshot = await getDocs(q);
@@ -115,7 +98,7 @@ export class TipService {
         throw error;
       }
     }
-    
+
     // Compter le total sans limites ni curseurs
     let countConstraints: any[] = [];
     if (options.authorId) {
@@ -132,14 +115,14 @@ export class TipService {
         }
       }
     }
-    
-    const countQuery = countConstraints.length > 0 
+
+    const countQuery = countConstraints.length > 0
       ? query(this.tipsCollection, ...countConstraints)
       : this.tipsCollection;
-      
+
     const countSnapshot = await getCountFromServer(countQuery);
     const totalCount = countSnapshot.data().count;
-    
+
     return {
       docs: docsSnapshot.docs,
       totalCount

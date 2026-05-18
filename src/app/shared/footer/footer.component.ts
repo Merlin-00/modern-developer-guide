@@ -4,7 +4,6 @@ import { LucideAngularModule, Github } from 'lucide-angular';
 
 @Component({
   selector: 'app-footer',
-  standalone: true,
   imports: [CommonModule, LucideAngularModule],
   template: `
     <footer class="border-t border-gray-200/50 bg-white dark:border-gray-800/50 dark:bg-[#121212] py-8 mt-auto transition-colors duration-300">

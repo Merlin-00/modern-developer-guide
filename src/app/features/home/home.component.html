@@ -1,0 +1,121 @@
+<div class="min-h-[calc(100vh-4rem)] bg-gray-50 dark:bg-[#0f0f0f] transition-colors duration-300">
+
+    <!-- Contenu de la slide active -->
+    <div class="max-w-3xl mx-auto px-6 pt-8 pb-16">
+
+        @for (slide of slides; track slide.id; let i = $index) {
+        @if (i === currentIndex()) {
+        <div class="slide-content">
+
+            <!-- Label étape -->
+            <div
+                class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-6">
+                <span class="w-6 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
+                {{ slide.step }}
+            </div>
+
+            <!-- Titre -->
+            <h1 class="text-3xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-4 leading-tight">
+                {{ slide.title }}
+            </h1>
+
+            <!-- Sous-titre -->
+            <p class="text-lg md:text-xl text-blue-600 dark:text-blue-400 font-medium mb-6">
+                {{ slide.subtitle }}
+            </p>
+
+            <!-- Contenu principal -->
+            <p class="text-base md:text-lg text-gray-600 dark:text-gray-400 leading-relaxed reading-container mb-6">
+                {{ slide.content }}
+            </p>
+
+            <!-- Image d'illustration si disponible -->
+            @if (slide.imageUrl) {
+            <div
+                class="my-6 rounded-2xl overflow-hidden shadow-md border border-gray-200/60 dark:border-gray-800/60 bg-white dark:bg-[#121212] flex items-center justify-center p-1">
+                <img [src]="slide.imageUrl" alt="Illustration {{ slide.title }}" referrerpolicy="no-referrer"
+                    class="rounded-xl w-full max-h-[300px] object-cover transition-transform duration-500 hover:scale-102">
+            </div>
+            }
+
+            <!-- Liste de détails enrichie -->
+            @if (slide.details && slide.details.length > 0) {
+            <div
+                class="my-6 bg-white dark:bg-[#121212] p-6 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm">
+                <h3
+                    class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2">
+                    <span class="w-1.5 h-3 bg-blue-600 dark:bg-blue-400 rounded-sm"></span>
+                    Au programme de ce chapitre :
+                </h3>
+                <ul class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    @for (detail of slide.details; track detail) {
+                    <li class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                        <span class="text-blue-600 dark:text-blue-400 mt-1 font-bold">•</span>
+                        <span>{{ detail }}</span>
+                    </li>
+                    }
+                </ul>
+            </div>
+            }
+
+            <!-- Bloc de code -->
+            @if (slide.codeSnippet) {
+            <div class="mt-8 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-xl">
+                <div class="flex items-center justify-between px-4 py-2.5 bg-[#161b22] border-b border-gray-700/30">
+                    <div class="flex gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500/70"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/70"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500/70"></span>
+                    </div>
+                    <span class="text-xs font-mono text-gray-400">{{ slide.codeSnippet.language }}</span>
+                    <button (click)="copyCode(slide.codeSnippet!.code, i)"
+                        class="text-xs text-gray-400 hover:text-white transition-colors font-medium cursor-pointer"
+                        aria-label="Copier le code">
+                        {{ copiedIndex() === i ? '✓ Copié' : 'Copier' }}
+                    </button>
+                </div>
+                <div class="p-5 overflow-x-auto bg-[#0d1117]">
+                    <pre
+                        class="font-mono text-sm text-gray-300 leading-relaxed"><code [innerHTML]="getHighlightedCode(slide.codeSnippet.code, slide.codeSnippet.language)"></code></pre>
+                </div>
+            </div>
+            }
+        </div>
+        }
+        }
+
+        <!-- Navigation en bas du contenu — inline & sans ombres -->
+        <div class="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800/60 flex items-center justify-between">
+
+            <!-- Indicateurs de dots -->
+            <div class="flex flex-wrap gap-1.5 max-w-[70%]">
+                @for (slide of slides; track slide.id; let i = $index) {
+                <button (click)="goToSlide(i)" class="rounded-full transition-all duration-300 cursor-pointer" [class]="currentIndex() === i
+                  ? 'w-6 h-2 bg-blue-600 dark:bg-blue-400'
+                  : 'w-2 h-2 bg-gray-300 dark:bg-gray-700 hover:bg-gray-400'" [attr.aria-label]="'Etape ' + (i + 1)">
+                </button>
+                }
+            </div>
+
+            <!-- Boutons de contrôle (Précédent / Suivant) -->
+            <div class="flex items-center gap-3 shrink-0">
+                <!-- Bouton Précédent -->
+                <button (click)="prevSlide()" [disabled]="currentIndex() === 0"
+                    class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    aria-label="Étape précédente">
+                    <lucide-icon name="chevron-left" [size]="18"></lucide-icon>
+                </button>
+
+                <!-- Bouton Suivant -->
+                <button (click)="nextSlide()" [disabled]="currentIndex() === slides.length - 1"
+                    class="p-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                    aria-label="Étape suivante">
+                    <lucide-icon name="chevron-right" [size]="18"></lucide-icon>
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

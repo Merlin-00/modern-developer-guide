@@ -2,18 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { Observable, map, catchError, of } from 'rxjs';
-
-export interface ChatMessage {
-  role: 'user' | 'model';
-  content: string;
-}
+import { ChatMessage } from '../models/common.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class IaChatbotService {
   private http = inject(HttpClient);
-  
+
   private apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${environment.gemini.apiKey}`;
 
   sendMessage(history: ChatMessage[], newMessage: string): Observable<string> {
@@ -22,7 +18,7 @@ export class IaChatbotService {
       role: msg.role === 'model' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));
-    
+
     // Ajouter le nouveau message
     contents.push({
       role: 'user',

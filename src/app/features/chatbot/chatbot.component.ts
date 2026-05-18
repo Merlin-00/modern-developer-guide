@@ -10,7 +10,8 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
-import { IaChatbotService, ChatMessage } from '../../core/services/ia-chatbot.service';
+import { IaChatbotService } from '../../core/services/ia-chatbot.service';
+import { ChatMessage } from '../../core/models/common.model';
 
 /**
  * ChatbotComponent — Widget flottant d'assistance IA.
@@ -19,7 +20,6 @@ import { IaChatbotService, ChatMessage } from '../../core/services/ia-chatbot.se
  */
 @Component({
   selector: 'app-chatbot',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, LucideAngularModule],
   template: `

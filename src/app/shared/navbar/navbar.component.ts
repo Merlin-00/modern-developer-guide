@@ -2,11 +2,10 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { LucideAngularModule, Moon, Sun, Menu, X, BookOpen, Code, Github } from 'lucide-angular';
-import { ThemeService } from '../../../core/services/theme.service';
+import { ThemeService } from '../../core/services/utilities/theme.service';
 
 @Component({
   selector: 'app-navbar',
-  standalone: true,
   imports: [CommonModule, RouterModule, LucideAngularModule],
   template: `
     <header class="sticky top-0 z-50 w-full border-b border-gray-200/50 bg-white/80 backdrop-blur-md dark:border-gray-800/50 dark:bg-[#121212]/80 transition-colors duration-300">

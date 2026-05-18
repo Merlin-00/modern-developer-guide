@@ -4,7 +4,6 @@ import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-confirm-modal',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, LucideAngularModule],
   template: `
