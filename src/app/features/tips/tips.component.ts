@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { DomSanitizer, SafeHtml, Title, Meta } from '@angular/platform-browser';
 import { LucideAngularModule } from 'lucide-angular';
 import { TipService } from '../../core/services/firebases/tip.service';
 import { AuthService } from '../../core/services/firebases/auth.service';
@@ -32,6 +32,8 @@ export class TipsComponent implements OnInit, OnDestroy {
   private tipService = inject(TipService);
   private platformId = inject(PLATFORM_ID);
   private sanitizer = inject(DomSanitizer);
+  private titleService = inject(Title);
+  private metaService = inject(Meta);
 
   copiedId = signal<string | null>(null);
   likedTipIds = signal<string[]>([]);
@@ -77,6 +79,15 @@ export class TipsComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // SEO
+    this.titleService.setTitle('Astuces & Snippets — Modern Developer Guide');
+    this.metaService.updateTag({ name: 'description', content: 'Parcourez les astuces de code, snippets et bonnes pratiques partagés par les développeurs de la communauté.' });
+    this.metaService.updateTag({ property: 'og:title', content: 'Astuces & Snippets — Modern Developer Guide' });
+    this.metaService.updateTag({ property: 'og:description', content: 'Parcourez les astuces de code, snippets et bonnes pratiques partagés par les développeurs de la communauté.' });
+    this.metaService.updateTag({ property: 'og:url', content: 'https://modern-developer-guide.vercel.app/tips' });
+    this.metaService.updateTag({ name: 'twitter:title', content: 'Astuces & Snippets — Modern Developer Guide' });
+    this.metaService.updateTag({ name: 'twitter:description', content: 'Parcourez les astuces de code, snippets et bonnes pratiques partagés par les développeurs de la communauté.' });
+
     this.loadLikedTipsFromLocalStorage();
 
     // S'abonner aux changements de recherche debouncés à 300ms

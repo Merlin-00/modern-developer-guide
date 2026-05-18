@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /profile
+
+Sitemap: https://modern-developer-guide.vercel.app/sitemap.xml

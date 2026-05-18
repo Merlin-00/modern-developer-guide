@@ -8,7 +8,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { DomSanitizer, SafeHtml, Title, Meta } from '@angular/platform-browser';
 import { LucideAngularModule } from 'lucide-angular';
 import gsap from 'gsap';
 import { HOME_SLIDES_CONTENT } from '../../core/constants/content.constants';
@@ -27,12 +27,23 @@ import { HOME_SLIDES_CONTENT } from '../../core/constants/content.constants';
 export class HomeComponent implements AfterViewInit, OnInit {
   private platformId = inject(PLATFORM_ID);
   private sanitizer = inject(DomSanitizer);
+  private titleService = inject(Title);
+  private metaService = inject(Meta);
   slides = HOME_SLIDES_CONTENT;
 
   currentIndex = signal(0);
   copiedIndex = signal<number | null>(null);
 
   ngOnInit(): void {
+    // SEO
+    this.titleService.setTitle('Modern Developer Guide — Apprendre, Partager, Grandir');
+    this.metaService.updateTag({ name: 'description', content: 'Découvrez le guide des développeurs modernes : astuces, snippets et bonnes pratiques partagés par la communauté.' });
+    this.metaService.updateTag({ property: 'og:title', content: 'Modern Developer Guide — Apprendre, Partager, Grandir' });
+    this.metaService.updateTag({ property: 'og:description', content: 'Découvrez le guide des développeurs modernes : astuces, snippets et bonnes pratiques partagés par la communauté.' });
+    this.metaService.updateTag({ property: 'og:url', content: 'https://modern-developer-guide.vercel.app/' });
+    this.metaService.updateTag({ name: 'twitter:title', content: 'Modern Developer Guide — Apprendre, Partager, Grandir' });
+    this.metaService.updateTag({ name: 'twitter:description', content: 'Découvrez le guide des développeurs modernes : astuces, snippets et bonnes pratiques partagés par la communauté.' });
+
     if (isPlatformBrowser(this.platformId)) {
       const savedIndex = localStorage.getItem('mdg_home_slide_index');
       if (savedIndex !== null) {

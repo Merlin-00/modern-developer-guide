@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { Title, Meta } from '@angular/platform-browser';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/services/firebases/auth.service';
@@ -26,6 +27,8 @@ export class ProfileComponent implements OnInit {
   authService = inject(AuthService);
   private tipService = inject(TipService);
   private fb = inject(FormBuilder);
+  private titleService = inject(Title);
+  private metaService = inject(Meta);
 
   isSubmitting = signal(false);
   editingTipId = signal<string | null>(null);
@@ -66,6 +69,11 @@ export class ProfileComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // SEO — page privée, pas d'indexation
+    this.titleService.setTitle('Mon Profil — Modern Developer Guide');
+    this.metaService.updateTag({ name: 'description', content: 'Gérez votre profil et vos astuces sur Modern Developer Guide.' });
+    this.metaService.updateTag({ name: 'robots', content: 'noindex, nofollow' });
+
     // Initial load
     this.loadMyTips();
   }
