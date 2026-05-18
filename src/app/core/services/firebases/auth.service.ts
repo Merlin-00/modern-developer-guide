@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, Injector, runInInjectionContext } from '@angular/core';
 import { Auth, authState, GoogleAuthProvider, signInWithPopup, signOut, User } from '@angular/fire/auth';
 
 @Injectable({
@@ -6,6 +6,7 @@ import { Auth, authState, GoogleAuthProvider, signInWithPopup, signOut, User } f
 })
 export class AuthService {
   private auth: Auth = inject(Auth);
+  private injector = inject(Injector);
   
   // Signal pour l'état de l'utilisateur
   currentUser = signal<User | null>(null);
@@ -22,19 +23,23 @@ export class AuthService {
   }
 
   async loginWithGoogle() {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(this.auth, provider);
-    } catch (error) {
-      console.error('Erreur lors de la connexion Google:', error);
-    }
+    return runInInjectionContext(this.injector, async () => {
+      try {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(this.auth, provider);
+      } catch (error) {
+        console.error('Erreur lors de la connexion Google:', error);
+      }
+    });
   }
 
   async logout() {
-    try {
-      await signOut(this.auth);
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-    }
+    return runInInjectionContext(this.injector, async () => {
+      try {
+        await signOut(this.auth);
+      } catch (error) {
+        console.error('Erreur lors de la déconnexion:', error);
+      }
+    });
   }
 }

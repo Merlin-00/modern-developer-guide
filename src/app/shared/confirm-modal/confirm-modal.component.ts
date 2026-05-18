@@ -68,7 +68,7 @@ export class ConfirmModalComponent {
   @Input() confirmText = 'Confirmer';
   @Input() cancelText = 'Annuler';
   @Input() type: 'danger' | 'warning' | 'info' = 'info';
-  @Input() iconName = 'alert-triangle';
+  @Input() iconName = 'triangle-alert';
 
   @Output() confirm = new EventEmitter<void>();
   @Output() cancel = new EventEmitter<void>();
