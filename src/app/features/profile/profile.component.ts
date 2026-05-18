@@ -3,14 +3,15 @@ import {
   inject,
   signal,
   ChangeDetectionStrategy,
+  effect,
+  untracked,
+  OnInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/services/auth.service';
 import { TipService, Tip } from '../../core/services/tip.service';
-import { map, catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
 
 @Component({
   selector: 'app-profile',
@@ -46,105 +47,101 @@ import { of } from 'rxjs';
             Se connecter avec Google
           </button>
         </div>
-      } @else {
-        <!-- État : Connecté -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          <!-- Section Gauche : Infos Profil -->
-          <div class="space-y-6 lg:col-span-1">
-            <div class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-              <div class="text-center">
-                <!-- Avatar -->
-                <div class="relative inline-block mb-4">
-                  @if (authService.currentUser()?.photoURL) {
-                    <img
-                      [src]="authService.currentUser()?.photoURL"
-                      [alt]="authService.currentUser()?.displayName"
-                      referrerpolicy="no-referrer"
-                      class="w-24 h-24 rounded-full border-2 border-blue-600 dark:border-blue-400 p-0.5 object-cover mx-auto">
-                  } @else {
-                    <div class="w-24 h-24 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-3xl font-extrabold mx-auto">
-                      {{ authService.currentUser()?.displayName?.charAt(0)?.toUpperCase() || 'D' }}
-                    </div>
-                  }
+            } @else {
+        <!-- Bandeau Profil Horizontal (Minimaliste & Premium) -->
+        <div class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 mb-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div class="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
+            <!-- Avatar -->
+            <div class="relative shrink-0">
+              @if (authService.currentUser()?.photoURL) {
+                <img
+                  [src]="authService.currentUser()?.photoURL"
+                  [alt]="authService.currentUser()?.displayName"
+                  referrerpolicy="no-referrer"
+                  class="w-16 h-16 rounded-2xl border border-gray-100 dark:border-gray-800 object-cover">
+              } @else {
+                <div class="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 flex items-center justify-center text-2xl font-extrabold">
+                  {{ authService.currentUser()?.displayName?.charAt(0)?.toUpperCase() || 'D' }}
                 </div>
-
-                <!-- Infos -->
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-                  {{ authService.currentUser()?.displayName }}
-                </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                  {{ authService.currentUser()?.email }}
-                </p>
-
-                <!-- Déconnexion -->
-                <button
-                  (click)="authService.logout()"
-                  class="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 dark:border-red-950 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/20 py-2.5 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer">
-                  <lucide-icon name="log-in" [size]="16" class="rotate-180"></lucide-icon>
-                  Déconnexion
-                </button>
-              </div>
+              }
+            </div>
+            <!-- Infos -->
+            <div>
+              <h2 class="text-xl font-extrabold text-gray-900 dark:text-white">
+                {{ authService.currentUser()?.displayName }}
+              </h2>
+              <p class="text-sm font-semibold text-gray-400 dark:text-gray-500">
+                {{ authService.currentUser()?.email }}
+              </p>
             </div>
           </div>
+          <!-- Bouton Déconnexion -->
+          <button
+            (click)="authService.logout()"
+            class="inline-flex items-center gap-2 rounded-xl border border-red-200 dark:border-red-950/60 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/20 px-4 py-2.5 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer w-full sm:w-auto justify-center">
+            <lucide-icon name="log-in" [size]="14" class="rotate-180"></lucide-icon>
+            Déconnexion
+          </button>
+        </div>
 
-          <!-- Section Droite : Formulaire & Mes Astuces -->
-          <div class="space-y-6 lg:col-span-2">
+        <!-- Grille du tableau de bord (Formulaire à gauche, Liste à droite) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-            <!-- Bloc : Partager ou modifier une astuce -->
-            <div id="tip-form-container" class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-              <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
-                <lucide-icon name="message-square" [size]="20" class="text-blue-600 dark:text-blue-400"></lucide-icon>
-                {{ editingTipId() ? 'Modifier votre astuce' : 'Partager une astuce' }}
-              </h2>
+          <!-- Colonne Gauche : Formulaire -->
+          <div id="tip-form-container" class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 h-fit">
+            <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+              <lucide-icon name="message-square" [size]="20" class="text-blue-600 dark:text-blue-400"></lucide-icon>
+              {{ editingTipId() ? 'Modifier votre astuce' : 'Partager une astuce' }}
+            </h2>
 
-              <form [formGroup]="tipForm" (ngSubmit)="submitTip()" class="flex flex-col gap-4">
-                <div class="flex flex-col gap-1">
-                  <input
-                    type="text"
-                    formControlName="title"
-                    placeholder="Titre de votre astuce (ex: Centrer en CSS)"
-                    [class.border-red-500]="tipForm.get('title')?.invalid && tipForm.get('title')?.touched"
-                    [class.dark:border-red-500]="tipForm.get('title')?.invalid && tipForm.get('title')?.touched"
-                    class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-3 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-400">
-                  @if (tipForm.get('title')?.invalid && tipForm.get('title')?.touched) {
-                    <span class="text-xs text-red-500 px-1">Le titre doit comporter au moins 5 caractères.</span>
-                  }
-                </div>
+            <form [formGroup]="tipForm" (ngSubmit)="submitTip()" class="flex flex-col gap-4">
+              <div class="flex flex-col gap-1">
+                <input
+                  type="text"
+                  formControlName="title"
+                  placeholder="Titre de votre astuce (ex: Centrer en CSS)"
+                  [class.border-red-500]="tipForm.get('title')?.invalid && tipForm.get('title')?.touched"
+                  [class.dark:border-red-500]="tipForm.get('title')?.invalid && tipForm.get('title')?.touched"
+                  class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-3 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-400">
+              </div>
 
-                <div class="flex flex-col gap-1">
-                  <textarea
-                    formControlName="description"
-                    rows="3"
-                    placeholder="Expliquez brièvement comment ça fonctionne..."
-                    [class.border-red-500]="tipForm.get('description')?.invalid && tipForm.get('description')?.touched"
-                    [class.dark:border-red-500]="tipForm.get('description')?.invalid && tipForm.get('description')?.touched"
-                    class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-3 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-400 resize-none"></textarea>
-                  @if (tipForm.get('description')?.invalid && tipForm.get('description')?.touched) {
-                    <span class="text-xs text-red-500 px-1">La description doit comporter au moins 10 caractères.</span>
-                  }
-                </div>
+              <div class="flex flex-col gap-1">
+                <textarea
+                  formControlName="description"
+                  rows="4"
+                  placeholder="Expliquez brièvement votre astuce..."
+                  [class.border-red-500]="tipForm.get('description')?.invalid && tipForm.get('description')?.touched"
+                  [class.dark:border-red-500]="tipForm.get('description')?.invalid && tipForm.get('description')?.touched"
+                  class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-3 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-400"></textarea>
+              </div>
 
+              <div class="flex flex-col gap-1">
                 <textarea
                   formControlName="codeSnippet"
-                  rows="5"
-                  placeholder="Snippet de code..."
-                  class="w-full font-mono rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-3 text-sm text-gray-300 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-500 resize-none"></textarea>
+                  rows="6"
+                  placeholder="// Écrivez votre code ici..."
+                  class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-3 text-sm font-mono text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-400"></textarea>
+              </div>
 
-                <div class="flex items-center justify-between gap-4">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex flex-col gap-1 w-full sm:max-w-xs">
                   <select
                     formControlName="language"
-                    class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500 cursor-pointer">
+                    class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:border-gray-400 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-800/30 cursor-pointer">
                     <option value="typescript">TypeScript</option>
                     <option value="javascript">JavaScript</option>
-                    <option value="html">HTML</option>
+                    <option value="angular">Angular</option>
+                    <option value="react">React</option>
+                    <option value="vue">Vue</option>
+                    <option value="docker">Docker</option>
+                    <option value="git">Git</option>
+                    <option value="sql">SQL</option>
                     <option value="css">CSS</option>
-                    <option value="bash">Bash / Shell</option>
+                    <option value="html">HTML</option>
                     <option value="python">Python</option>
-                    <option value="java">Java</option>
                     <option value="go">Go</option>
                     <option value="rust">Rust</option>
-                    <option value="cpp">C++ / C</option>
+                    <option value="cpp">C++</option>
                     <option value="csharp">C#</option>
                     <option value="php">PHP</option>
                     <option value="ruby">Ruby</option>
@@ -152,101 +149,132 @@ import { of } from 'rxjs';
                     <option value="yaml">YAML / JSON</option>
                     <option value="markdown">Markdown</option>
                   </select>
-
-                  <div class="flex items-center gap-2.5">
-                    @if (editingTipId()) {
-                      <button
-                        type="button"
-                        (click)="cancelEdit()"
-                        class="btn-secondary !py-2 shrink-0 cursor-pointer">
-                        Annuler
-                      </button>
-                    }
-                    <button
-                      type="submit"
-                      [disabled]="isSubmitting()"
-                      class="btn-primary !py-2 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
-                      {{ isSubmitting() ? 'Enregistrement…' : (editingTipId() ? 'Enregistrer' : 'Publier') }}
-                    </button>
-                  </div>
                 </div>
-              </form>
-            </div>
 
-            <!-- Bloc : Mes astuces partagées -->
-            <div>
-              <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                Mes astuces partagées
-              </h2>
-
-              @if (myTips$ | async; as tips) {
-                @if (tips.length === 0) {
-                  <div class="text-center py-12 p-6 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
-                    <p class="text-gray-500 dark:text-gray-400 text-sm">
-                      Vous n'avez pas encore partagé d'astuces. Créez-en une au-dessus !
-                    </p>
-                  </div>
-                } @else {
-                  <div class="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
-                    @for (tip of tips; track tip.id) {
-                      <div class="py-5 group flex items-start justify-between gap-4">
-                        <div class="flex-1">
-                          <h4 class="text-base font-bold text-gray-900 dark:text-white mb-1">
-                            {{ tip.title }}
-                          </h4>
-                          <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
-                            {{ tip.description }}
-                          </p>
-                          <div class="flex items-center gap-2 mt-2">
-                            <span class="inline-block text-xs font-semibold px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-                              {{ tip.language }}
-                            </span>
-                            <span class="text-xs text-gray-400 dark:text-gray-500">
-                              • {{ formatDate(tip.createdAt) | date:'dd MMM yyyy' }}
-                            </span>
-                            @if (tip.isEdited) {
-                              <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-50/70 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-semibold text-[10px]">
-                                Modifié
-                              </span>
-                            }
-                          </div>
-                        </div>
-                        
-                        <div class="flex items-center gap-1.5">
-                          <!-- Modifier -->
-                          <button
-                            (click)="editTip(tip)"
-                            class="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-xl transition-all cursor-pointer"
-                            title="Modifier">
-                            <lucide-icon name="edit" [size]="18"></lucide-icon>
-                          </button>
-
-                          <!-- Supprimer -->
-                          <button
-                            (click)="deleteTip(tip.id!)"
-                            class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all cursor-pointer"
-                            title="Supprimer">
-                            <lucide-icon name="trash-2" [size]="18"></lucide-icon>
-                          </button>
-                        </div>
-                      </div>
-                    }
-                  </div>
-                }
-              } @else {
-                <p class="text-sm text-gray-500">Chargement de vos astuces...</p>
-              }
-            </div>
-
+                <div class="flex items-center gap-2.5 justify-end">
+                  @if (editingTipId()) {
+                    <button
+                      type="button"
+                      (click)="cancelEdit()"
+                      class="btn-secondary !py-2 shrink-0 cursor-pointer">
+                      Annuler
+                    </button>
+                  }
+                  <button
+                    type="submit"
+                    [disabled]="isSubmitting()"
+                    class="btn-primary !py-2 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+                    {{ isSubmitting() ? 'Enregistrement…' : (editingTipId() ? 'Enregistrer' : 'Publier') }}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
 
+          <!-- Colonne Droite : Astuces Partagées -->
+          <div id="my-tips-container" class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 h-fit">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
+              Mes astuces partagées
+            </h2>
+
+            @if (isLoadingMyTips()) {
+              <div class="flex flex-col gap-4 py-8">
+                @for (i of [1,2]; track i) {
+                  <div class="animate-pulse flex items-start justify-between gap-4 py-4">
+                    <div class="flex-1 space-y-2">
+                      <div class="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/3"></div>
+                      <div class="h-3 bg-gray-200 dark:bg-gray-800 rounded w-2/3"></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              @if (myTips().length === 0) {
+                <div class="text-center py-12 p-6 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 animate-fade-in">
+                  <p class="text-gray-500 dark:text-gray-400 text-sm">
+                    Vous n'avez pas encore partagé d'astuces. Créez-en une à gauche !
+                  </p>
+                </div>
+              } @else {
+                <div class="flex flex-col divide-y divide-gray-100 dark:divide-gray-800 animate-fade-in">
+                  @for (tip of myTips(); track tip.id) {
+                    <div class="py-5 group flex items-start justify-between gap-4">
+                      <div class="flex-1">
+                        <h4 class="text-base font-bold text-gray-900 dark:text-white mb-1">
+                          {{ tip.title }}
+                        </h4>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                          {{ tip.description }}
+                        </p>
+                        <div class="flex items-center gap-2 mt-2">
+                          <span class="inline-block text-xs font-semibold px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                            {{ tip.language }}
+                          </span>
+                          <span class="text-xs text-gray-400 dark:text-gray-500">
+                            • {{ formatDate(tip.createdAt) | date:'dd MMM yyyy' }}
+                          </span>
+                          @if (tip.isEdited) {
+                            <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-50/70 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-semibold text-[10px]">
+                              Modifié
+                            </span>
+                          }
+                        </div>
+                      </div>
+                      
+                      <div class="flex items-center gap-1.5">
+                        <!-- Modifier -->
+                        <button
+                          (click)="editTip(tip)"
+                          class="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-xl transition-all cursor-pointer"
+                          title="Modifier">
+                          <lucide-icon name="edit" [size]="18"></lucide-icon>
+                        </button>
+
+                        <!-- Supprimer -->
+                        <button
+                          (click)="deleteTip(tip.id!)"
+                          class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all cursor-pointer"
+                          title="Supprimer">
+                          <lucide-icon name="trash-2" [size]="18"></lucide-icon>
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                <!-- Contrôles de pagination -->
+                @if (totalPages() > 1) {
+                  <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800/60 flex items-center justify-between">
+                    <button
+                      (click)="prevPage()"
+                      [disabled]="currentPage() === 1"
+                      class="p-2 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 text-xs font-semibold cursor-pointer">
+                      <lucide-icon name="chevron-left" [size]="14"></lucide-icon>
+                      Précédent
+                    </button>
+                    
+                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                      Page {{ currentPage() }} sur {{ totalPages() }}
+                    </span>
+
+                    <button
+                      (click)="nextPage()"
+                      [disabled]="currentPage() === totalPages()"
+                      class="p-2 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 text-xs font-semibold cursor-pointer">
+                      Suivant
+                      <lucide-icon name="chevron-right" [size]="14"></lucide-icon>
+                    </button>
+                  </div>
+                }
+              }
+            }
+          </div>
         </div>
       }
-
-    </div>
+          </div>
   `,
 })
-export class ProfileComponent {
+export class ProfileComponent implements OnInit {
   authService = inject(AuthService);
   private tipService = inject(TipService);
   private fb = inject(FormBuilder);
@@ -254,13 +282,14 @@ export class ProfileComponent {
   isSubmitting = signal(false);
   editingTipId = signal<string | null>(null);
 
-  // Filtrer les astuces pour ne récupérer que celles de l'utilisateur connecté
-  myTips$ = this.tipService.getTips().pipe(
-    map((tips) =>
-      tips.filter((t) => t.authorId === this.authService.currentUser()?.uid)
-    ),
-    catchError(() => of([]))
-  );
+  // Pagination signaux
+  currentPage = signal<number>(1);
+  pageSize = 5;
+  totalPages = signal<number>(1);
+  myTips = signal<Tip[]>([]);
+  isLoadingMyTips = signal<boolean>(true);
+
+  private cursors: any[] = [];
 
   tipForm = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.minLength(5)]],
@@ -268,6 +297,95 @@ export class ProfileComponent {
     codeSnippet: [''],
     language: ['typescript'],
   });
+
+  constructor() {
+    // Recharger la pagination de profil lorsque l'utilisateur connecté change
+    effect(() => {
+      const user = this.authService.currentUser();
+      untracked(() => {
+        if (user) {
+          this.currentPage.set(1);
+          this.cursors = [];
+          this.loadMyTips();
+        } else {
+          this.myTips.set([]);
+          this.totalPages.set(1);
+        }
+      });
+    });
+  }
+
+  ngOnInit(): void {
+    // Initial load
+    this.loadMyTips();
+  }
+
+  async loadMyTips() {
+    const user = this.authService.currentUser();
+    if (!user) {
+      this.myTips.set([]);
+      this.isLoadingMyTips.set(false);
+      return;
+    }
+    
+    this.isLoadingMyTips.set(true);
+    try {
+      const page = this.currentPage();
+      const startAfterDoc = page > 1 ? this.cursors[page - 1] : null;
+
+      const result = await this.tipService.getTipsPaginated({
+        pageSize: this.pageSize,
+        startAfterDoc,
+        sortBy: 'createdAt', // Toujours trier par date pour le profil
+        authorId: user.uid
+      });
+
+      const tips = result.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tip));
+
+      // Stocker le curseur pour la page suivante
+      if (result.docs.length > 0) {
+        this.cursors[page] = result.docs[result.docs.length - 1];
+      }
+
+      this.myTips.set(tips);
+      this.totalPages.set(Math.max(1, Math.ceil(result.totalCount / this.pageSize)));
+    } catch (error) {
+      console.error("Erreur de chargement des astuces du profil :", error);
+    } finally {
+      this.isLoadingMyTips.set(false);
+    }
+  }
+
+  prevPage(): void {
+    if (this.currentPage() > 1) {
+      this.currentPage.update((p) => p - 1);
+      this.loadMyTips();
+      this.scrollToTips();
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) {
+      this.currentPage.update((p) => p + 1);
+      this.loadMyTips();
+      this.scrollToTips();
+    }
+  }
+
+  resetPagination() {
+    this.currentPage.set(1);
+    this.cursors = [];
+    this.loadMyTips();
+  }
+
+  private scrollToTips(): void {
+    setTimeout(() => {
+      const container = document.getElementById('my-tips-container');
+      if (container) {
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
+  }
 
   editTip(tip: Tip): void {
     this.editingTipId.set(tip.id!);
@@ -282,7 +400,7 @@ export class ProfileComponent {
     setTimeout(() => {
       const container = document.getElementById('tip-form-container');
       if (container) {
-        container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 50);
   }
@@ -294,7 +412,6 @@ export class ProfileComponent {
 
   async submitTip(): Promise<void> {
     if (this.tipForm.invalid) {
-      // Signaler les erreurs de validation en marquant les champs comme touchés
       this.tipForm.markAllAsTouched();
       return;
     }
@@ -303,7 +420,6 @@ export class ProfileComponent {
     this.isSubmitting.set(true);
     const { title, description, codeSnippet, language } = this.tipForm.getRawValue();
 
-    // Retirer les espaces du début et de la fin (trim)
     const titleTrimmed = title?.trim() || '';
     const descriptionTrimmed = description?.trim() || '';
     const snippetTrimmed = codeSnippet?.trim() || '';
@@ -316,9 +432,10 @@ export class ProfileComponent {
           description: descriptionTrimmed,
           codeSnippet: snippetTrimmed,
           language: languageTrimmed,
-          isEdited: true, // Marque l'astuce comme modifiée
+          isEdited: true,
         });
         this.cancelEdit();
+        this.loadMyTips(); // Rafraîchir la page actuelle
       } else {
         const user = this.authService.currentUser()!;
         await this.tipService.addTip({
@@ -331,6 +448,7 @@ export class ProfileComponent {
           authorAvatar: user.photoURL || '',
         });
         this.tipForm.reset({ language: 'typescript' });
+        this.resetPagination(); // Revenir à la page 1 pour voir la nouvelle publication
       }
     } catch (err) {
       console.error('Erreur lors de la publication:', err);
@@ -350,6 +468,7 @@ export class ProfileComponent {
   async deleteTip(id: string): Promise<void> {
     if (confirm('Supprimer définitivement cette astuce ?')) {
       await this.tipService.deleteTip(id).catch(() => {});
+      this.loadMyTips(); // Rafraîchir la liste après suppression
     }
   }
 }

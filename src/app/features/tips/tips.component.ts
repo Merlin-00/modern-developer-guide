@@ -13,8 +13,8 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { LucideAngularModule } from 'lucide-angular';
 import { TipService, Tip } from '../../core/services/tip.service';
 import { AuthService } from '../../core/services/auth.service';
-import { catchError, startWith, map } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { catchError, startWith, map, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { of, Subject } from 'rxjs';
 
 // Astuces statiques par défaut — affichées tant que Firestore n'est pas disponible
 // Astuces statiques par défaut — servent de guide pour apprendre à utiliser le site
@@ -110,11 +110,51 @@ function reactToTip(tip) {
           </p>
         </div>
 
-        <div class="shrink-0">
-          <a routerLink="/profile" class="btn-primary cursor-pointer">
+        <div class="flex items-center gap-3 shrink-0 w-full md:w-auto">
+          <a routerLink="/profile" class="btn-primary w-full md:w-auto justify-center cursor-pointer">
             <lucide-icon name="message-square" [size]="16"></lucide-icon>
             Partager une astuce
           </a>
+        </div>
+      </div>
+
+      <!-- Filtres et Recherche -->
+      <div class="mb-8 flex flex-col md:flex-row gap-4 items-center justify-between bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-200 dark:border-gray-800">
+        
+        <!-- Barre de recherche -->
+        <div class="relative w-full md:max-w-md">
+          <lucide-icon name="terminal" [size]="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"></lucide-icon>
+          <input
+            type="text"
+            (input)="onSearchInput($event)"
+            placeholder="Rechercher par langage (ex: angular, css) ou par titre..."
+            class="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#0f0f0f] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-400 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-800/30 transition-all">
+        </div>
+
+        <!-- Onglets de tri -->
+        <div class="flex items-center w-full md:w-auto bg-gray-50 dark:bg-[#0f0f0f] p-1 rounded-xl border border-gray-200 dark:border-gray-800">
+          <button
+            (click)="setSortBy('likes')"
+            [class.bg-white]="sortBy() === 'likes'"
+            [class.dark:bg-gray-900]="sortBy() === 'likes'"
+            [class.shadow-sm]="sortBy() === 'likes'"
+            [class.text-gray-900]="sortBy() === 'likes'"
+            [class.dark:text-white]="sortBy() === 'likes'"
+            [class.text-gray-500]="sortBy() !== 'likes'"
+            class="flex-1 md:flex-initial text-center px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer">
+            Plus Populaires
+          </button>
+          <button
+            (click)="setSortBy('createdAt')"
+            [class.bg-white]="sortBy() === 'createdAt'"
+            [class.dark:bg-gray-900]="sortBy() === 'createdAt'"
+            [class.shadow-sm]="sortBy() === 'createdAt'"
+            [class.text-gray-900]="sortBy() === 'createdAt'"
+            [class.dark:text-white]="sortBy() === 'createdAt'"
+            [class.text-gray-500]="sortBy() !== 'createdAt'"
+            class="flex-1 md:flex-initial text-center px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer">
+            Plus Récents
+          </button>
         </div>
       </div>
 
@@ -246,10 +286,14 @@ function reactToTip(tip) {
         } @else {
           <!-- Aucun résultat -->
           <div class="text-center py-16 px-6 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl animate-fade-in">
-            <lucide-icon name="terminal" [size]="48" class="text-gray-300 dark:text-gray-700 mx-auto mb-4"></lucide-icon>
+            <lucide-icon name="search" [size]="44" class="text-gray-300 dark:text-gray-700 mx-auto mb-4"></lucide-icon>
             <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Aucune astuce trouvée</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-              Soyez le premier à partager une astuce avec la communauté dans votre onglet Profil !
+              @if (searchQuery().trim()) {
+                Aucun résultat ne correspond à votre recherche. Essayez d'autres mots-clés.
+              } @else {
+                Soyez le premier à partager une astuce avec la communauté dans votre onglet Profil !
+              }
             </p>
           </div>
         }
@@ -269,6 +313,8 @@ export class TipsComponent implements OnInit {
   showDefaultTipTooltip = signal<string | null>(null);
   isLoading = signal<boolean>(true);
 
+
+
   loadedImages = signal<Record<string, boolean>>({});
   imageErrors = signal<Record<string, boolean>>({});
 
@@ -280,48 +326,126 @@ export class TipsComponent implements OnInit {
     this.imageErrors.update(prev => ({ ...prev, [tipId]: true }));
   }
 
-  // Signaux réactifs pour la pagination client-side (performances idéales)
-  allTips = signal<Tip[]>([]);
+  // Signaux réactifs pour la pagination serveur-side (performances industrielles)
   currentPage = signal<number>(1);
   pageSize = 5; // Nombre d'astuces à afficher par page
+  sortBy = signal<'likes' | 'createdAt'>('likes');
+  searchQuery = signal<string>('');
+  totalPages = signal<number>(1);
+  paginatedTips = signal<Tip[]>([]);
 
-  // Computed signal : renvoie uniquement les astuces de la page courante
-  paginatedTips = computed(() => {
-    const startIndex = (this.currentPage() - 1) * this.pageSize;
-    return this.allTips().slice(startIndex, startIndex + this.pageSize);
-  });
+  private cursors: any[] = [];
+  private searchSubject = new Subject<string>();
 
-  // Computed signal : nombre total de pages
-  totalPages = computed(() => Math.ceil(this.allTips().length / this.pageSize));
+  constructor() { }
 
-  // Fusionner les astuces de la base de données et celles par défaut, puis trier par likes et par date
-  tips$ = this.tipService.getTips().pipe(
-    map((firestoreTips) => {
-      // Filtrer les doublons potentiels
-      const uniqueFirestore = firestoreTips.filter(ft => !ft.id?.startsWith('default-'));
-      const combined = [...DEFAULT_TIPS, ...uniqueFirestore];
+  ngOnInit() {
+    this.loadLikedTipsFromLocalStorage();
 
-      // Trier par Likes (décroissant), puis par Date (décroissant)
-      return combined.sort((a, b) => {
-        if ((b.likes || 0) !== (a.likes || 0)) {
-          return (b.likes || 0) - (a.likes || 0);
-        }
-        const dateA = this.getTimestamp(a.createdAt);
-        const dateB = this.getTimestamp(b.createdAt);
-        return dateB - dateA;
-      });
-    }),
-    catchError(() => of(DEFAULT_TIPS.sort((a, b) => (b.likes || 0) - (a.likes || 0))))
-  );
-
-  constructor() {
-    // Initialiser avec les astuces par défaut pendant le chargement
-    this.allTips.set(DEFAULT_TIPS.sort((a, b) => (b.likes || 0) - (a.likes || 0)));
-
-    this.tips$.subscribe((tips) => {
-      this.allTips.set(tips);
-      this.isLoading.set(false); // Chargement terminé (Firestore a répondu !)
+    // S'abonner aux changements de recherche debouncés à 300ms
+    this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe((query) => {
+      this.searchQuery.set(query);
+      this.currentPage.set(1);
+      this.cursors = [];
+      this.loadTips();
     });
+
+    // Chargement initial
+    this.loadTips();
+  }
+
+  async loadTips() {
+    this.isLoading.set(true);
+    try {
+      const page = this.currentPage();
+      const startAfterDoc = page > 1 ? this.cursors[page - 1] : null;
+
+      const result = await this.tipService.getTipsPaginated({
+        pageSize: this.pageSize,
+        startAfterDoc,
+        sortBy: this.sortBy(),
+        searchQuery: this.searchQuery()
+      });
+
+      let tips = result.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tip));
+
+      const totalDatabaseCount = result.totalCount;
+      const totalCount = totalDatabaseCount + (this.searchQuery().trim() ? 0 : DEFAULT_TIPS.length);
+      this.totalPages.set(Math.max(1, Math.ceil(totalCount / this.pageSize)));
+
+      // Si nous ne sommes pas en train de faire une recherche, on applique la pagination virtuelle combinée
+      if (!this.searchQuery().trim()) {
+        const startIndex = (page - 1) * this.pageSize;
+        const endIndex = page * this.pageSize;
+
+        const getTimestamp = (dateStr: any): number => {
+          if (!dateStr) return 0;
+          if (typeof dateStr.toMillis === 'function') return dateStr.toMillis();
+          if (dateStr.seconds !== undefined) return dateStr.seconds * 1000;
+          return new Date(dateStr).getTime() || 0;
+        };
+
+        if (startIndex < totalDatabaseCount) {
+          // Cette page contient au moins quelques astuces de la base de données
+          const dbTipsOnPage = tips.filter(t => !t.id?.startsWith('default-'));
+          
+          // Trier d'abord les astuces de la base de données selon le tri sélectionné
+          if (this.sortBy() === 'likes') {
+            dbTipsOnPage.sort((a, b) => {
+              if ((b.likes || 0) !== (a.likes || 0)) {
+                return (b.likes || 0) - (a.likes || 0);
+              }
+              return getTimestamp(b.createdAt) - getTimestamp(a.createdAt);
+            });
+          } else {
+            dbTipsOnPage.sort((a, b) => getTimestamp(b.createdAt) - getTimestamp(a.createdAt));
+          }
+
+          if (endIndex > totalDatabaseCount) {
+            // C'est la page de transition : on complète avec les premières astuces par défaut
+            const neededDefaultCount = endIndex - totalDatabaseCount;
+            const defaultsToAppend = DEFAULT_TIPS.slice(0, neededDefaultCount);
+            tips = [...dbTipsOnPage, ...defaultsToAppend];
+          } else {
+            // La page est entièrement remplie par les astuces de la base de données
+            tips = dbTipsOnPage;
+          }
+        } else {
+          // Cette page est entièrement composée d'astuces par défaut
+          const defaultStartIndex = startIndex - totalDatabaseCount;
+          const defaultEndIndex = endIndex - totalDatabaseCount;
+          tips = DEFAULT_TIPS.slice(defaultStartIndex, defaultEndIndex);
+        }
+      }
+
+      // Stocker le curseur pour la page suivante
+      if (result.docs.length > 0) {
+        this.cursors[page] = result.docs[result.docs.length - 1];
+      }
+
+      this.paginatedTips.set(tips);
+    } catch (error) {
+      console.error("Erreur de chargement des astuces :", error);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  setSortBy(sort: 'likes' | 'createdAt') {
+    if (this.sortBy() !== sort) {
+      this.sortBy.set(sort);
+      this.currentPage.set(1);
+      this.cursors = [];
+      this.loadTips();
+    }
+  }
+
+  onSearchInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.searchSubject.next(input.value);
   }
 
   formatDate(createdAt: any): Date | string {
@@ -346,17 +470,6 @@ export class TipsComponent implements OnInit {
     return 0;
   }
 
-  ngOnInit() {
-    if (isPlatformBrowser(this.platformId)) {
-      const saved = localStorage.getItem('mdg_liked_tips');
-      if (saved) {
-        try {
-          this.likedTipIds.set(JSON.parse(saved));
-        } catch (e) {}
-      }
-    }
-  }
-
   isLiked(tipId: string): boolean {
     return this.likedTipIds().includes(tipId);
   }
@@ -370,25 +483,42 @@ export class TipsComponent implements OnInit {
     if (!tip.id) return;
 
     const isAlreadyLiked = this.isLiked(tip.id);
-    let newLikes = tip.likes || 0;
 
-    if (isAlreadyLiked) {
-      // Dé-like
-      newLikes = Math.max(0, newLikes - 1);
-      this.likedTipIds.update((ids) => ids.filter((id) => id !== tip.id));
-    } else {
-      // Like
-      newLikes += 1;
-      this.likedTipIds.update((ids) => [...ids, tip.id!]);
-    }
+    // Mise à jour optimiste et réactive locale
+    this.likedTipIds.update((ids) =>
+      isAlreadyLiked ? ids.filter((id) => id !== tip.id) : [...ids, tip.id!]
+    );
+
+    this.paginatedTips.update((all) =>
+      all.map((t) => t.id === tip.id ? { ...t, likes: Math.max(0, (t.likes || 0) + (isAlreadyLiked ? -1 : 1)) } : t)
+    );
 
     // Sauvegarder dans localStorage
     if (isPlatformBrowser(this.platformId)) {
       localStorage.setItem('mdg_liked_tips', JSON.stringify(this.likedTipIds()));
     }
 
-    // Mettre à jour dans Firestore
-    await this.tipService.updateTip(tip.id, { likes: newLikes }).catch(() => { });
+    // Sauvegarde concurrente-safe sur Firestore
+    await this.tipService.likeTip(tip.id, !isAlreadyLiked).catch(() => {
+      // Rollback en cas d'échec
+      this.likedTipIds.update((ids) =>
+        isAlreadyLiked ? [...ids, tip.id!] : ids.filter((id) => id !== tip.id)
+      );
+      this.paginatedTips.update((all) =>
+        all.map((t) => t.id === tip.id ? { ...t, likes: tip.likes } : t)
+      );
+    });
+  }
+
+  private loadLikedTipsFromLocalStorage(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      const saved = localStorage.getItem('mdg_liked_tips');
+      if (saved) {
+        try {
+          this.likedTipIds.set(JSON.parse(saved));
+        } catch (e) { }
+      }
+    }
   }
 
   shareTip(tip: Tip): void {
@@ -454,10 +584,10 @@ export class TipsComponent implements OnInit {
     // 1. Extraire les commentaires pour les protéger
     const comments: string[] = [];
     const isHashComment = ['python', 'bash', 'sh', 'shell', 'yaml', 'yml', 'ruby', 'perl', 'dockerfile'].includes(lang);
-    const commentRegex = isHashComment 
-      ? /(#.*)/g 
+    const commentRegex = isHashComment
+      ? /(#.*)/g
       : /(\/\/.*|\/\*[\s\S]*?\*\/)/g;
-    
+
     escaped = escaped.replace(commentRegex, (match) => {
       const id = `___COMMENT_PLACEHOLDER_${comments.length}___`;
       comments.push(match);
@@ -531,9 +661,12 @@ export class TipsComponent implements OnInit {
     return escaped;
   }
 
+
+
   prevPage(): void {
     if (this.currentPage() > 1) {
       this.currentPage.update((p) => p - 1);
+      this.loadTips();
       this.scrollToTop();
     }
   }
@@ -541,6 +674,7 @@ export class TipsComponent implements OnInit {
   nextPage(): void {
     if (this.currentPage() < this.totalPages()) {
       this.currentPage.update((p) => p + 1);
+      this.loadTips();
       this.scrollToTop();
     }
   }
