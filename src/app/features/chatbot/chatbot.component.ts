@@ -88,7 +88,7 @@ import { ChatMessage } from '../../core/models/common.model';
               <lucide-icon name="bot" [size]="15"></lucide-icon>
             </div>
             <div class="bg-white dark:bg-gray-900 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-700 dark:text-gray-300 shadow-sm border border-gray-100 dark:border-gray-800 max-w-[85%]">
-              Bonjour ! 👋 Je suis votre Mentor IA. De l'achat de votre premier ordinateur jusqu'à la maîtrise de Git, differents langages de programmation, frameworks,... je suis là pour vous accompagner de A à Z. Posez-moi vos questions !
+              Bonjour ! 👋 Je suis votre Mentor IA. De l'achat de votre premier ordinateur jusqu'à la maîtrise des outils de developpement moderne, je suis là pour vous accompagner de A à Z. Posez-moi vos questions !
             </div>
           </div>
 
