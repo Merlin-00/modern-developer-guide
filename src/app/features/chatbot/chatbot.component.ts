@@ -197,7 +197,7 @@ export class ChatbotComponent {
         ]);
         this.isLoading.set(false);
         this.cdr.markForCheck();
-        this.scrollToBottom();
+        // On ne scrolle pas vers le bas pour laisser l'utilisateur lire le début du message
       },
       error: () => {
         this.messages.update((msgs) => [
