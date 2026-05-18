@@ -14,10 +14,7 @@ import { ThemeService } from '../../core/services/utilities/theme.service';
           <!-- Logo -->
           <div class="flex items-center">
             <a routerLink="/" class="flex items-center gap-2 group">
-              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white transition-transform group-hover:scale-105">
-                <lucide-icon name="code" [size]="16"></lucide-icon>
-              </div>
-              <span class="text-lg font-bold tracking-tight text-gray-900 dark:text-white">MDG.</span>
+              <img src="/icons/icon-128x128.png" alt="MDG Logo" class="h-20 w-20 rounded-lg transition-transform group-hover:scale-105" />
             </a>
           </div>
 
