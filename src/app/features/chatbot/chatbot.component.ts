@@ -6,6 +6,7 @@ import {
   signal,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  HostListener,
 } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -87,7 +88,7 @@ import { ChatMessage } from '../../core/models/common.model';
               <lucide-icon name="bot" [size]="15"></lucide-icon>
             </div>
             <div class="bg-white dark:bg-gray-900 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-700 dark:text-gray-300 shadow-sm border border-gray-100 dark:border-gray-800 max-w-[85%]">
-              Bonjour ! 👋 Je suis votre Mentor IA. Posez-moi vos questions sur Angular, TypeScript, Git ou n'importe quel concept de développement.
+              Bonjour ! 👋 Je suis votre Mentor IA. De l'achat de votre premier ordinateur jusqu'à la maîtrise de Git, differents langages de programmation, frameworks,... je suis là pour vous accompagner de A à Z. Posez-moi vos questions !
             </div>
           </div>
 
@@ -165,16 +166,34 @@ export class ChatbotComponent {
   inputText = '';
   isMinimized = signal(false);
 
+  @HostListener('window:popstate', ['$event'])
+  onPopState(event: PopStateEvent) {
+    // Si l'utilisateur fait "Retour" (swipe ou bouton), on ferme le chat
+    if (this.isOpen()) {
+      this.isOpen.set(false);
+      if (this.document) this.document.body.classList.remove('overflow-hidden');
+      this.cdr.markForCheck();
+    }
+  }
+
   open(): void {
     this.isOpen.set(true);
     if (this.document) this.document.body.classList.add('overflow-hidden');
+    // On ajoute un état dans l'historique du navigateur
+    history.pushState({ chatbotOpen: true }, '');
     this.cdr.markForCheck();
   }
 
   close(): void {
-    this.isOpen.set(false);
-    if (this.document) this.document.body.classList.remove('overflow-hidden');
-    this.cdr.markForCheck();
+    if (this.isOpen()) {
+      this.isOpen.set(false);
+      if (this.document) this.document.body.classList.remove('overflow-hidden');
+      // Si on ferme avec la croix, on retire l'état de l'historique
+      if (history.state?.chatbotOpen) {
+        history.back();
+      }
+      this.cdr.markForCheck();
+    }
   }
 
   send(): void {
