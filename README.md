@@ -114,5 +114,8 @@ Nous accueillons toutes les contributions, même (et surtout !) celles des débu
 - [ ] Ajout d'un système de commentaires sous les astuces
 - [ ] Profil utilisateur complet avec badges d'apprentissage
 - [ ] Outil de quiz interactif pour tester ses connaissances
+- [ ] **[IA]** Mise en place d'une architecture RAG (Retrieval-Augmented Generation) pour que l'IA puisse lire le contenu dynamique de Firestore.
+- [ ] **[IA]** Persistance de l'historique de conversation (via `localStorage` ou Firestore) pour éviter la perte du chat au rafraîchissement.
+- [ ] **[IA]** Optimisation de l'envoi de l'historique (pagination/troncature) pour économiser les tokens envoyés à Gemini.
 
 Bon code à tous ! 💙
