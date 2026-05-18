@@ -16,7 +16,10 @@ import {
   getCountFromServer,
   startAfter,
   where,
-  limit
+  limit,
+  arrayUnion,
+  arrayRemove,
+  onSnapshot
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 
@@ -32,6 +35,8 @@ export interface Tip {
   createdAt?: any;
   likes: number;
   isEdited?: boolean;
+  isDeleted?: boolean;
+  likedBy?: string[];
 }
 
 @Injectable({
@@ -152,6 +157,7 @@ export class TipService {
     const newTip = {
       ...tipData,
       likes: 0,
+      isDeleted: false,
       createdAt: serverTimestamp() // Utilise l'heure du serveur Firebase
     };
     return addDoc(this.tipsCollection, newTip);
@@ -163,15 +169,31 @@ export class TipService {
     return updateDoc(tipRef, data);
   }
 
-  // Supprimer une astuce
+  // Supprimer logiquement une astuce
   async deleteTip(id: string) {
     const tipRef = doc(this.firestore, `tips/${id}`);
-    return deleteDoc(tipRef);
+    return updateDoc(tipRef, { isDeleted: true });
   }
 
   // Incrémenter ou décrémenter les likes de manière concurrente (safe)
-  async likeTip(id: string, isLike: boolean) {
+  async likeTip(id: string, isLike: boolean, userId?: string | null) {
     const tipRef = doc(this.firestore, `tips/${id}`);
-    return updateDoc(tipRef, { likes: increment(isLike ? 1 : -1) });
+    const updates: any = {
+      likes: increment(isLike ? 1 : -1)
+    };
+    if (userId) {
+      updates.likedBy = isLike ? arrayUnion(userId) : arrayRemove(userId);
+    }
+    return updateDoc(tipRef, updates);
+  }
+
+  // Écouter une astuce spécifique en temps réel (pour la synchronisation multi-utilisateurs)
+  listenToTip(id: string, callback: (tip: Tip) => void): () => void {
+    const tipRef = doc(this.firestore, `tips/${id}`);
+    return onSnapshot(tipRef, (docSnap) => {
+      if (docSnap.exists()) {
+        callback({ id: docSnap.id, ...docSnap.data() } as Tip);
+      }
+    });
   }
 }

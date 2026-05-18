@@ -6,6 +6,9 @@ import {
   ChangeDetectionStrategy,
   PLATFORM_ID,
   OnInit,
+  OnDestroy,
+  effect,
+  untracked
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -144,22 +147,20 @@ function reactToTip(tip) {
         <div class="flex items-center w-full md:w-auto bg-gray-50 dark:bg-[#0f0f0f] p-1 rounded-xl border border-gray-200 dark:border-gray-800">
           <button
             (click)="setSortBy('likes')"
-            [class.bg-white]="sortBy() === 'likes'"
-            [class.dark:bg-[#121212]]="sortBy() === 'likes'"
-            [class.shadow-sm]="sortBy() === 'likes'"
-            [class.text-gray-900]="sortBy() === 'likes'"
-            [class.dark:text-white]="sortBy() === 'likes'"
+            [class.bg-blue-50/70]="sortBy() === 'likes'"
+            [class.dark:bg-blue-950/25]="sortBy() === 'likes'"
+            [class.text-blue-600]="sortBy() === 'likes'"
+            [class.dark:text-blue-400]="sortBy() === 'likes'"
             [class.text-gray-500]="sortBy() !== 'likes'"
             class="flex-1 md:flex-initial text-center px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer">
             Plus Populaires
           </button>
           <button
             (click)="setSortBy('createdAt')"
-            [class.bg-white]="sortBy() === 'createdAt'"
-            [class.dark:bg-[#121212]]="sortBy() === 'createdAt'"
-            [class.shadow-sm]="sortBy() === 'createdAt'"
-            [class.text-gray-900]="sortBy() === 'createdAt'"
-            [class.dark:text-white]="sortBy() === 'createdAt'"
+            [class.bg-blue-50/70]="sortBy() === 'createdAt'"
+            [class.dark:bg-blue-950/25]="sortBy() === 'createdAt'"
+            [class.text-blue-600]="sortBy() === 'createdAt'"
+            [class.dark:text-blue-400]="sortBy() === 'createdAt'"
             [class.text-gray-500]="sortBy() !== 'createdAt'"
             class="flex-1 md:flex-initial text-center px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer">
             Plus Récents
@@ -257,6 +258,14 @@ function reactToTip(tip) {
                         Astuce guide de base (non modifiable)
                       </div>
                     }
+
+                    <!-- Tooltip pour connexion requise (cliquable pour rediriger vers la connexion) -->
+                    @if (showAuthTooltip() === tip.id) {
+                      <a routerLink="/profile" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-2.5 bg-gray-950 hover:bg-gray-900 dark:bg-gray-900 dark:hover:bg-gray-800 text-white text-xs font-bold rounded-xl shadow-xl whitespace-nowrap z-10 animate-fade-in border border-gray-200/10 flex items-center gap-2 transition-all cursor-pointer hover:scale-105 active:scale-95 no-underline">
+                        <lucide-icon name="log-in" [size]="14" class="text-blue-400"></lucide-icon>
+                        <span>Se connecter pour aimer cette astuce</span>
+                      </a>
+                    }
                   </div>
 
                   <button (click)="shareTip(tip)" class="flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer">
@@ -298,9 +307,9 @@ function reactToTip(tip) {
             <lucide-icon name="search" [size]="44" class="text-gray-300 dark:text-gray-700 mx-auto mb-4"></lucide-icon>
             <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Aucune astuce trouvée</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-              @if (searchQuery().trim()) {
+              
                 Aucun résultat ne correspond à votre recherche. Essayez d'autres mots-clés.
-              } @else {
+              @if (!(searchQuery().trim())) {
                 Soyez le premier à partager une astuce avec la communauté dans votre onglet Profil !
               }
             </p>
@@ -311,7 +320,7 @@ function reactToTip(tip) {
     </div>
   `,
 })
-export class TipsComponent implements OnInit {
+export class TipsComponent implements OnInit, OnDestroy {
   authService = inject(AuthService);
   private tipService = inject(TipService);
   private platformId = inject(PLATFORM_ID);
@@ -320,7 +329,10 @@ export class TipsComponent implements OnInit {
   copiedId = signal<string | null>(null);
   likedTipIds = signal<string[]>([]);
   showDefaultTipTooltip = signal<string | null>(null);
+  showAuthTooltip = signal<string | null>(null);
   isLoading = signal<boolean>(true);
+
+  private tipSubscriptions: (() => void)[] = [];
 
 
 
@@ -346,7 +358,15 @@ export class TipsComponent implements OnInit {
   private cursors: any[] = [];
   private searchSubject = new Subject<string>();
 
-  constructor() { }
+  constructor() {
+    effect(() => {
+      // S'abonner aux changements de l'utilisateur pour recharger les likes
+      const user = this.authService.currentUser();
+      untracked(() => {
+        this.loadLikedTipsFromLocalStorage();
+      });
+    });
+  }
 
   ngOnInit() {
     this.loadLikedTipsFromLocalStorage();
@@ -435,7 +455,35 @@ export class TipsComponent implements OnInit {
         this.cursors[page] = result.docs[result.docs.length - 1];
       }
 
+      // Filtrer les astuces supprimées logiquement
+      tips = tips.filter(tip => tip.isDeleted !== true);
+
+      // Nettoyer les écouteurs précédents
+      this.tipSubscriptions.forEach((unsub) => unsub());
+      this.tipSubscriptions = [];
+
       this.paginatedTips.set(tips);
+
+      // S'abonner en temps réel aux changements de chaque astuce de la page (excluant les astuces par défaut)
+      tips.forEach((tip) => {
+        if (tip.id && !tip.id.startsWith('default-')) {
+          const unsub = this.tipService.listenToTip(tip.id, (updatedTip) => {
+            if (updatedTip.isDeleted === true) {
+              // Si l'astuce est supprimée, on la retire de l'affichage en temps réel
+              this.paginatedTips.update((all) => all.filter((t) => t.id !== updatedTip.id));
+              return;
+            }
+            this.paginatedTips.update((all) =>
+              all.map((t) =>
+                t.id === updatedTip.id
+                  ? { ...t, likes: updatedTip.likes, likedBy: updatedTip.likedBy, isDeleted: updatedTip.isDeleted }
+                  : t
+              )
+            );
+          });
+          this.tipSubscriptions.push(unsub);
+        }
+      });
     } catch (error) {
       console.error("Erreur de chargement des astuces :", error);
     } finally {
@@ -479,7 +527,24 @@ export class TipsComponent implements OnInit {
     return 0;
   }
 
+  private getStorageKey(): string {
+    const user = this.authService.currentUser();
+    return user ? `mdg_liked_tips_${user.uid}` : 'mdg_liked_tips_guest';
+  }
+
+  ngOnDestroy(): void {
+    this.tipSubscriptions.forEach((unsub) => unsub());
+  }
+
   isLiked(tipId: string): boolean {
+    const currentUserId = this.authService.currentUser()?.uid;
+    if (currentUserId) {
+      // Rechercher le tip dans nos astuces paginées pour lire son état en temps réel
+      const tip = this.paginatedTips().find(t => t.id === tipId);
+      if (tip) {
+        return !!(tip.likedBy && Array.isArray(tip.likedBy) && tip.likedBy.includes(currentUserId));
+      }
+    }
     return this.likedTipIds().includes(tipId);
   }
 
@@ -491,41 +556,75 @@ export class TipsComponent implements OnInit {
     }
     if (!tip.id) return;
 
+    const currentUserId = this.authService.currentUser()?.uid;
+    if (!currentUserId) {
+      // Afficher le tooltip invitant l'utilisateur sans compte à se connecter/créer un compte
+      this.showAuthTooltip.set(tip.id);
+      setTimeout(() => this.showAuthTooltip.set(null), 3000);
+      return;
+    }
+
     const isAlreadyLiked = this.isLiked(tip.id);
 
-    // Mise à jour optimiste et réactive locale
+    // 1. Mise à jour optimiste et réactive locale
     this.likedTipIds.update((ids) =>
       isAlreadyLiked ? ids.filter((id) => id !== tip.id) : [...ids, tip.id!]
     );
 
+    // 2. Mise à jour optimiste et réactive de likedBy et du count de likes dans paginatedTips
     this.paginatedTips.update((all) =>
-      all.map((t) => t.id === tip.id ? { ...t, likes: Math.max(0, (t.likes || 0) + (isAlreadyLiked ? -1 : 1)) } : t)
+      all.map((t) => {
+        if (t.id === tip.id) {
+          let updatedLikedBy = t.likedBy ? [...t.likedBy] : [];
+          if (currentUserId) {
+            if (isAlreadyLiked) {
+              updatedLikedBy = updatedLikedBy.filter(uid => uid !== currentUserId);
+            } else {
+              if (!updatedLikedBy.includes(currentUserId)) {
+                updatedLikedBy.push(currentUserId);
+              }
+            }
+          }
+          return {
+            ...t,
+            likes: Math.max(0, (t.likes || 0) + (isAlreadyLiked ? -1 : 1)),
+            likedBy: updatedLikedBy
+          };
+        }
+        return t;
+      })
     );
 
-    // Sauvegarder dans localStorage
+    // 3. Sauvegarder dans localStorage sous la clé spécifique à l'utilisateur
     if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem('mdg_liked_tips', JSON.stringify(this.likedTipIds()));
+      const key = this.getStorageKey();
+      localStorage.setItem(key, JSON.stringify(this.likedTipIds()));
     }
 
-    // Sauvegarde concurrente-safe sur Firestore
-    await this.tipService.likeTip(tip.id, !isAlreadyLiked).catch(() => {
+    // 4. Sauvegarde concurrente-safe sur Firestore
+    await this.tipService.likeTip(tip.id, !isAlreadyLiked, currentUserId).catch(() => {
       // Rollback en cas d'échec
       this.likedTipIds.update((ids) =>
         isAlreadyLiked ? [...ids, tip.id!] : ids.filter((id) => id !== tip.id)
       );
       this.paginatedTips.update((all) =>
-        all.map((t) => t.id === tip.id ? { ...t, likes: tip.likes } : t)
+        all.map((t) => t.id === tip.id ? { ...t, likes: tip.likes, likedBy: tip.likedBy } : t)
       );
     });
   }
 
   private loadLikedTipsFromLocalStorage(): void {
     if (isPlatformBrowser(this.platformId)) {
-      const saved = localStorage.getItem('mdg_liked_tips');
+      const key = this.getStorageKey();
+      const saved = localStorage.getItem(key);
       if (saved) {
         try {
           this.likedTipIds.set(JSON.parse(saved));
-        } catch (e) { }
+        } catch (e) {
+          this.likedTipIds.set([]);
+        }
+      } else {
+        this.likedTipIds.set([]);
       }
     }
   }

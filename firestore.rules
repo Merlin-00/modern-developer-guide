@@ -10,8 +10,14 @@ service cloud.firestore {
       // On s'assure que l'auteur renseigné correspond à l'utilisateur connecté
       allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
       
-      // Seul l'auteur peut modifier ou supprimer son astuce
-      allow update, delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+      // Seul l'auteur peut supprimer son astuce
+      allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+
+      // L'auteur peut modifier son astuce, mais les autres utilisateurs connectés peuvent uniquement liker/unliker (modifier uniquement 'likes' et 'likedBy')
+      allow update: if request.auth != null && (
+        resource.data.authorId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'likedBy'])
+      );
     }
   }
 }

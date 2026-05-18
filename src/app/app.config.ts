@@ -34,6 +34,7 @@ import {
   Trash2,
   LogIn,
   Edit,
+  AlertTriangle,
 } from 'lucide-angular';
 
 import { routes } from './app.routes';
@@ -70,6 +71,7 @@ export const appConfig: ApplicationConfig = {
         Trash2,
         LogIn,
         Edit,
+        AlertTriangle,
       }),
     ),
 

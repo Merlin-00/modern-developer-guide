@@ -12,12 +12,13 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/services/auth.service';
 import { TipService, Tip } from '../../core/services/tip.service';
+import { ConfirmModalComponent } from '../../shared/ui/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule],
+  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule, ConfirmModalComponent],
   template: `
     <div class="max-w-4xl mx-auto px-6 pt-8 pb-16">
 
@@ -324,6 +325,19 @@ import { TipService, Tip } from '../../core/services/tip.service';
         </div>
       }
     }
+
+    <!-- Modal de confirmation partagé réutilisable -->
+    <app-confirm-modal
+      [isOpen]="isConfirmModalOpen()"
+      title="Supprimer l'astuce"
+      message="Êtes-vous sûr de vouloir supprimer définitivement cette astuce ? Cette action est irréversible."
+      confirmText="Supprimer"
+      cancelText="Annuler"
+      type="danger"
+      iconName="alert-triangle"
+      (confirm)="onConfirmDelete()"
+      (cancel)="closeConfirmModal()">
+    </app-confirm-modal>
   </div>
   `,
 })
@@ -334,6 +348,8 @@ export class ProfileComponent implements OnInit {
 
   isSubmitting = signal(false);
   editingTipId = signal<string | null>(null);
+  isConfirmModalOpen = signal(false);
+  tipIdToDelete = signal<string | null>(null);
 
   // Pagination signaux
   currentPage = signal<number>(1);
@@ -393,7 +409,9 @@ export class ProfileComponent implements OnInit {
         authorId: user.uid
       });
 
-      const tips = result.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tip));
+      const tips = result.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as Tip))
+        .filter(tip => tip.isDeleted !== true);
 
       // Stocker le curseur pour la page suivante
       if (result.docs.length > 0) {
@@ -518,10 +536,22 @@ export class ProfileComponent implements OnInit {
     return createdAt;
   }
 
-  async deleteTip(id: string): Promise<void> {
-    if (confirm('Supprimer définitivement cette astuce ?')) {
-      await this.tipService.deleteTip(id).catch(() => { });
+  deleteTip(id: string): void {
+    this.tipIdToDelete.set(id);
+    this.isConfirmModalOpen.set(true);
+  }
+
+  async onConfirmDelete(): Promise<void> {
+    const id = this.tipIdToDelete();
+    if (id) {
+      await this.tipService.deleteTip(id).catch(() => {});
       this.loadMyTips(); // Rafraîchir la liste après suppression
     }
+    this.closeConfirmModal();
+  }
+
+  closeConfirmModal(): void {
+    this.isConfirmModalOpen.set(false);
+    this.tipIdToDelete.set(null);
   }
 }
