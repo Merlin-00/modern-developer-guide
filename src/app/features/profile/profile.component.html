@@ -134,21 +134,33 @@
 
             <form [formGroup]="tipForm" (ngSubmit)="submitTip()" class="flex flex-col gap-4">
                 <div class="flex flex-col gap-1">
-                    <input type="text" formControlName="title" placeholder="Titre de votre astuce (ex: Centrer en CSS)"
+                    <div class="flex justify-between items-center px-1">
+                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400">Titre</label>
+                        <span class="text-xs text-gray-400 dark:text-gray-500" [class.text-red-500]="(tipForm.get('title')?.value?.length || 0) >= 100">{{ tipForm.get('title')?.value?.length || 0 }}/100</span>
+                    </div>
+                    <input type="text" formControlName="title" placeholder="Titre de votre astuce (ex: Centrer en CSS)" maxlength="100"
                         [class.border-red-500]="tipForm.get('title')?.invalid && tipForm.get('title')?.touched"
                         [class.dark:border-red-500]="tipForm.get('title')?.invalid && tipForm.get('title')?.touched"
                         class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-3 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-400">
                 </div>
 
                 <div class="flex flex-col gap-1">
-                    <textarea formControlName="description" rows="4" placeholder="Expliquez brièvement votre astuce..."
+                    <div class="flex justify-between items-center px-1">
+                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400">Description</label>
+                        <span class="text-xs text-gray-400 dark:text-gray-500" [class.text-red-500]="(tipForm.get('description')?.value?.length || 0) >= 500">{{ tipForm.get('description')?.value?.length || 0 }}/500</span>
+                    </div>
+                    <textarea formControlName="description" rows="4" placeholder="Expliquez brièvement votre astuce..." maxlength="500"
                         [class.border-red-500]="tipForm.get('description')?.invalid && tipForm.get('description')?.touched"
                         [class.dark:border-red-500]="tipForm.get('description')?.invalid && tipForm.get('description')?.touched"
                         class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-3 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-400"></textarea>
                 </div>
 
                 <div class="flex flex-col gap-1">
-                    <textarea formControlName="codeSnippet" rows="6" placeholder="// Écrivez votre code ici..."
+                    <div class="flex justify-between items-center px-1">
+                        <label class="text-xs font-semibold text-gray-500 dark:text-gray-400">Code Snippet (Optionnel)</label>
+                        <span class="text-xs text-gray-400 dark:text-gray-500" [class.text-red-500]="(tipForm.get('codeSnippet')?.value?.length || 0) >= 2000">{{ tipForm.get('codeSnippet')?.value?.length || 0 }}/2000</span>
+                    </div>
+                    <textarea formControlName="codeSnippet" rows="6" placeholder="// Écrivez votre code ici..." maxlength="2000"
                         class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-3 text-sm font-mono text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-400"></textarea>
                 </div>
 

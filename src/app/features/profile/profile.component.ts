@@ -45,9 +45,9 @@ export class ProfileComponent implements OnInit {
   private cursors: any[] = [];
 
   tipForm = this.fb.nonNullable.group({
-    title: ['', [Validators.required, Validators.minLength(5)]],
-    description: ['', [Validators.required, Validators.minLength(10)]],
-    codeSnippet: [''],
+    title: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(100)]],
+    description: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(500)]],
+    codeSnippet: ['', [Validators.maxLength(2000)]],
     language: ['typescript'],
   });
 
