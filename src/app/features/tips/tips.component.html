@@ -161,9 +161,9 @@
                     <!-- Tooltip pour connexion requise (cliquable pour rediriger vers la connexion) -->
                     @if (showAuthTooltip() === tip.id) {
                     <a routerLink="/profile"
-                        class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-2.5 bg-gray-950 hover:bg-gray-900 dark:bg-gray-900 dark:hover:bg-gray-800 text-white text-xs font-bold rounded-xl shadow-xl whitespace-nowrap z-10 animate-fade-in border border-gray-200/10 flex items-center gap-2 transition-all cursor-pointer hover:scale-105 active:scale-95 no-underline">
-                        <lucide-icon name="log-in" [size]="14" class="text-blue-400"></lucide-icon>
-                        <span>Se connecter pour aimer cette astuce</span>
+                        class="absolute bottom-full left-0 sm:left-1/2 sm:-translate-x-1/2 mb-2 px-4 py-2.5 bg-gray-950 hover:bg-gray-900 dark:bg-gray-900 dark:hover:bg-gray-800 text-white text-xs font-bold rounded-xl shadow-xl z-10 animate-fade-in border border-gray-200/10 flex items-center gap-2 transition-all cursor-pointer hover:scale-105 active:scale-95 no-underline w-[240px] sm:w-max">
+                        <lucide-icon name="log-in" [size]="16" class="text-blue-400 shrink-0"></lucide-icon>
+                        <span class="whitespace-normal sm:whitespace-nowrap text-left sm:text-center leading-tight">Se connecter pour aimer cette astuce</span>
                     </a>
                     }
                 </div>

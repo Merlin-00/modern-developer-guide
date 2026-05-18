@@ -7,7 +7,7 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { IaChatbotService } from '../../core/services/ia-chatbot.service';
@@ -59,7 +59,7 @@ import { ChatMessage } from '../../core/models/common.model';
 
     <!-- Fenêtre de chat -->
     @if (isOpen()) {
-      <div class="fixed z-50 bg-white dark:bg-[#121212] border-l border-gray-200 dark:border-gray-800 md:border md:border-gray-200 md:dark:border-gray-800 flex flex-col overflow-hidden shadow-2xl transition-all duration-300 md:right-6 md:top-1/2 md:-translate-y-1/2 md:w-96 md:h-[520px] md:max-h-[calc(100vh-5rem)] md:rounded-2xl right-0 top-0 w-[85vw] max-w-[360px] h-[100dvh]"
+      <div class="fixed z-50 bg-white dark:bg-[#121212] border-l border-gray-200 dark:border-gray-800 md:border md:border-gray-200 md:dark:border-gray-800 flex flex-col overflow-hidden shadow-2xl transition-all duration-300 md:inset-auto md:right-6 md:top-1/2 md:-translate-y-1/2 md:w-96 md:h-[520px] md:max-h-[calc(100vh-5rem)] md:rounded-2xl inset-0 w-full h-[100dvh]"
            role="dialog" aria-label="Chat avec le Mentor IA">
 
         <!-- Header -->
@@ -155,6 +155,7 @@ import { ChatMessage } from '../../core/models/common.model';
 export class ChatbotComponent {
   private chatbotService = inject(IaChatbotService);
   private cdr = inject(ChangeDetectorRef);
+  private document = inject(DOCUMENT);
 
   @ViewChild('scrollArea') private scrollArea!: ElementRef<HTMLDivElement>;
 
@@ -166,11 +167,13 @@ export class ChatbotComponent {
 
   open(): void {
     this.isOpen.set(true);
+    if (this.document) this.document.body.classList.add('overflow-hidden');
     this.cdr.markForCheck();
   }
 
   close(): void {
     this.isOpen.set(false);
+    if (this.document) this.document.body.classList.remove('overflow-hidden');
     this.cdr.markForCheck();
   }
 
