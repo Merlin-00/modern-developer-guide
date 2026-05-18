@@ -42,8 +42,9 @@ export class IaChatbotService {
         return "Désolé, je n'ai pas pu générer de réponse.";
       }),
       catchError(error => {
-        console.error("Erreur API Gemini:", error);
-        return of("Une erreur s'est produite lors de la connexion à l'IA. Veuillez vérifier votre clé API ou votre connexion.");
+        // On affiche uniquement le code d'erreur (ex: 503) pour ne pas exposer l'URL complète avec la clé d'API dans la console
+        console.error(`Erreur API Gemini (Code: ${error.status || 'Inconnu'}) : Impossible de joindre le service.`);
+        return of("Une erreur s'est produite lors de la connexion à l'IA. Le service est peut-être temporairement surchargé, veuillez réessayer dans quelques instants.");
       })
     );
   }
