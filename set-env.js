@@ -25,6 +25,7 @@ const content = `export const environment = {
     projectNumber: '918286380513',
     version: '2',
   },
+  
   gemini: {
     apiKey: '${geminiApiKey}'
   }
