@@ -48,7 +48,7 @@ import { ThemeService } from '../../../core/services/theme.service';
               }
             </button>
             
-            <a href="https://github.com" target="_blank" class="hidden md:flex p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors cursor-pointer">
+            <a href="https://github.com/Merlin-00/modern-developer-guide.git" target="_blank" class="hidden md:flex p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors cursor-pointer">
               <lucide-icon name="github" [size]="20"></lucide-icon>
             </a>
             

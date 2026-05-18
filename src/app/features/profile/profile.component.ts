@@ -23,33 +23,85 @@ import { TipService, Tip } from '../../core/services/tip.service';
 
       <!-- En-tête -->
       <div class="mb-6">
-        <div class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-4">
+        <div class="hidden md:inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-4">
           <span class="w-6 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
           Espace Développeur
         </div>
-        <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white leading-tight">
-          Votre Profil
+        <h1 class="text-2xl md:text-4xl font-extrabold text-gray-900 dark:text-white leading-tight">
+          Mon Profil
         </h1>
       </div>
 
-      <!-- État : Non connecté -->
-      @if (!authService.currentUser()) {
-        <div class="text-center py-20 px-6 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
-          <div class="w-16 h-16 mx-auto rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-6">
-            <lucide-icon name="user" [size]="28"></lucide-icon>
+      <!-- État : En cours de chargement -->
+      @if (!authService.authInitialized()) {
+        <div class="animate-pulse flex flex-col gap-8">
+          <!-- Squelette En-tête -->
+          <div class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#121212] mb-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div class="flex flex-col sm:flex-row items-center gap-5 w-full">
+              <div class="w-16 h-16 rounded-2xl bg-gray-200 dark:bg-gray-800 shrink-0 animate-pulse"></div>
+              <div class="flex-1 space-y-2.5 w-full">
+                <div class="h-5 bg-gray-200 dark:bg-gray-800 rounded w-1/3 animate-pulse"></div>
+                <div class="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/4 animate-pulse"></div>
+              </div>
+            </div>
+            <div class="h-10 bg-gray-200 dark:bg-gray-800 rounded-xl w-full sm:w-32 shrink-0 animate-pulse"></div>
           </div>
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">Rejoignez la communauté</h2>
-          <p class="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
-            Connectez-vous pour commencer à partager vos astuces de code, aider les autres développeurs et gérer vos publications.
-          </p>
-          <button (click)="authService.loginWithGoogle()" class="btn-primary cursor-pointer">
-            <lucide-icon name="log-in" [size]="18"></lucide-icon>
-            Se connecter avec Google
-          </button>
+
+          <!-- Squelette Grille -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Formulaire -->
+            <div class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#121212] space-y-5">
+              <div class="h-6 bg-gray-200 dark:bg-gray-800 rounded w-1/2 animate-pulse"></div>
+              <div class="h-12 bg-gray-200 dark:bg-gray-800 rounded-xl w-full animate-pulse"></div>
+              <div class="h-24 bg-gray-200 dark:bg-gray-800 rounded-xl w-full animate-pulse"></div>
+              <div class="h-32 bg-gray-200 dark:bg-gray-800 rounded-xl w-full animate-pulse"></div>
+              <div class="flex justify-between gap-4">
+                <div class="h-10 bg-gray-200 dark:bg-gray-800 rounded-xl w-1/3 animate-pulse"></div>
+                <div class="h-10 bg-gray-200 dark:bg-gray-800 rounded-xl w-1/4 animate-pulse"></div>
+              </div>
+            </div>
+
+            <!-- Liste -->
+            <div class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#121212] space-y-6">
+              <div class="h-6 bg-gray-200 dark:bg-gray-800 rounded w-1/2 animate-pulse"></div>
+              <div class="space-y-4">
+                <div class="flex items-start justify-between gap-4 py-4 border-b border-gray-100 dark:border-gray-800/60 animate-pulse">
+                  <div class="flex-1 space-y-2">
+                    <div class="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/3 animate-pulse"></div>
+                    <div class="h-3 bg-gray-200 dark:bg-gray-800 rounded w-full animate-pulse"></div>
+                  </div>
+                  <div class="h-8 bg-gray-200 dark:bg-gray-800 rounded w-8 shrink-0 animate-pulse"></div>
+                </div>
+                <div class="flex items-start justify-between gap-4 py-4 animate-pulse">
+                  <div class="flex-1 space-y-2">
+                    <div class="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/3 animate-pulse"></div>
+                    <div class="h-3 bg-gray-200 dark:bg-gray-800 rounded w-full animate-pulse"></div>
+                  </div>
+                  <div class="h-8 bg-gray-200 dark:bg-gray-800 rounded w-8 shrink-0 animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-            } @else {
+      } @else {
+        <!-- État : Non connecté -->
+        @if (!authService.currentUser()) {
+          <div class="text-center py-20 px-6 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-6">
+              <lucide-icon name="user" [size]="28"></lucide-icon>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">Rejoignez la communauté</h2>
+            <p class="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
+              Connectez-vous pour commencer à partager vos astuces de code, aider les autres développeurs et gérer vos publications.
+            </p>
+            <button (click)="authService.loginWithGoogle()" class="btn-primary cursor-pointer">
+              <lucide-icon name="log-in" [size]="18"></lucide-icon>
+              Se connecter avec Google
+            </button>
+          </div>
+        } @else {
         <!-- Bandeau Profil Horizontal (Minimaliste & Premium) -->
-        <div class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 mb-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#121212] mb-8 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div class="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
             <!-- Avatar -->
             <div class="relative shrink-0">
@@ -88,7 +140,7 @@ import { TipService, Tip } from '../../core/services/tip.service';
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
           <!-- Colonne Gauche : Formulaire -->
-          <div id="tip-form-container" class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 h-fit">
+          <div id="tip-form-container" class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#121212] h-fit">
             <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
               <lucide-icon name="message-square" [size]="20" class="text-blue-600 dark:text-blue-400"></lucide-icon>
               {{ editingTipId() ? 'Modifier votre astuce' : 'Partager une astuce' }}
@@ -127,7 +179,7 @@ import { TipService, Tip } from '../../core/services/tip.service';
                 <div class="flex flex-col gap-1 w-full sm:max-w-xs">
                   <select
                     formControlName="language"
-                    class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:border-gray-400 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-800/30 cursor-pointer">
+                    class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f0f0f] px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 cursor-pointer">
                     <option value="typescript">TypeScript</option>
                     <option value="javascript">JavaScript</option>
                     <option value="angular">Angular</option>
@@ -172,7 +224,7 @@ import { TipService, Tip } from '../../core/services/tip.service';
           </div>
 
           <!-- Colonne Droite : Astuces Partagées -->
-          <div id="my-tips-container" class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 h-fit">
+          <div id="my-tips-container" class="p-6 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#121212] h-fit">
             <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
               Mes astuces partagées
             </h2>
@@ -271,7 +323,8 @@ import { TipService, Tip } from '../../core/services/tip.service';
           </div>
         </div>
       }
-          </div>
+    }
+  </div>
   `,
 })
 export class ProfileComponent implements OnInit {
@@ -327,7 +380,7 @@ export class ProfileComponent implements OnInit {
       this.isLoadingMyTips.set(false);
       return;
     }
-    
+
     this.isLoadingMyTips.set(true);
     try {
       const page = this.currentPage();
@@ -467,7 +520,7 @@ export class ProfileComponent implements OnInit {
 
   async deleteTip(id: string): Promise<void> {
     if (confirm('Supprimer définitivement cette astuce ?')) {
-      await this.tipService.deleteTip(id).catch(() => {});
+      await this.tipService.deleteTip(id).catch(() => { });
       this.loadMyTips(); // Rafraîchir la liste après suppression
     }
   }

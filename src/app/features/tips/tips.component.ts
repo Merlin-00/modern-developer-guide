@@ -96,30 +96,39 @@ function reactToTip(tip) {
     <div class="max-w-3xl mx-auto px-6 pt-8 pb-16">
 
       <!-- En-tête de page -->
-      <div class="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-6 border-b border-gray-100 dark:border-gray-800/60 pb-6">
-        <div>
-          <div class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-4">
-            <span class="w-6 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
-            Communauté
-          </div>
-          <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white mb-3 leading-tight">
-            Astuces de Développeurs
-          </h1>
-          <p class="text-base text-gray-500 dark:text-gray-400">
-            Découvrez les snippets, astuces et bonnes pratiques partagés par la communauté.
-          </p>
+      <div class="mb-6 border-b border-gray-100 dark:border-gray-800/60 pb-6">
+        <!-- Badge au-dessus (uniquement sur PC) -->
+        <div class="hidden md:inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-2">
+          <span class="w-6 h-0.5 bg-blue-600 dark:bg-blue-400"></span>
+          Communauté
         </div>
 
-        <div class="flex items-center gap-3 shrink-0 w-full md:w-auto">
-          <a routerLink="/profile" class="btn-primary w-full md:w-auto justify-center cursor-pointer">
-            <lucide-icon name="message-square" [size]="16"></lucide-icon>
-            Partager une astuce
-          </a>
+        <!-- Ligne Titre & Bouton -->
+        <div class="flex items-center justify-between gap-4 mb-3 md:mb-4">
+          <h1 class="text-2xl md:text-4xl font-extrabold text-gray-900 dark:text-white leading-tight">
+            <span class="hidden md:inline">Astuces de Développeurs</span>
+            <span class="inline md:hidden">Astuces</span>
+          </h1>
+          
+          <div class="shrink-0">
+            <a routerLink="/profile" class="btn-primary justify-center cursor-pointer text-xs md:text-sm px-3 md:px-5 py-2 md:py-2.5">
+              <lucide-icon name="message-square" [size]="14" class="md:hidden mr-1"></lucide-icon>
+              <lucide-icon name="message-square" [size]="16" class="hidden md:inline mr-1"></lucide-icon>
+              <span class="hidden sm:inline">Partager une astuce</span>
+              <span class="inline sm:hidden">Partager</span>
+            </a>
+          </div>
         </div>
+
+        <!-- Description en dessous -->
+        <p class="text-xs md:text-base text-gray-500 dark:text-gray-400">
+          <span class="hidden md:inline">Découvrez les snippets, astuces et bonnes pratiques partagés par la communauté.</span>
+          <span class="inline md:hidden">Snippets et astuces de la communauté.</span>
+        </p>
       </div>
 
       <!-- Filtres et Recherche -->
-      <div class="mb-8 flex flex-col md:flex-row gap-4 items-center justify-between bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-200 dark:border-gray-800">
+      <div class="mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
         
         <!-- Barre de recherche -->
         <div class="relative w-full md:max-w-md">
@@ -128,7 +137,7 @@ function reactToTip(tip) {
             type="text"
             (input)="onSearchInput($event)"
             placeholder="Rechercher par langage (ex: angular, css) ou par titre..."
-            class="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#0f0f0f] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-gray-400 dark:focus:border-gray-600 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-800/30 transition-all">
+            class="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#0f0f0f] text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all">
         </div>
 
         <!-- Onglets de tri -->
@@ -136,7 +145,7 @@ function reactToTip(tip) {
           <button
             (click)="setSortBy('likes')"
             [class.bg-white]="sortBy() === 'likes'"
-            [class.dark:bg-gray-900]="sortBy() === 'likes'"
+            [class.dark:bg-[#121212]]="sortBy() === 'likes'"
             [class.shadow-sm]="sortBy() === 'likes'"
             [class.text-gray-900]="sortBy() === 'likes'"
             [class.dark:text-white]="sortBy() === 'likes'"
@@ -147,7 +156,7 @@ function reactToTip(tip) {
           <button
             (click)="setSortBy('createdAt')"
             [class.bg-white]="sortBy() === 'createdAt'"
-            [class.dark:bg-gray-900]="sortBy() === 'createdAt'"
+            [class.dark:bg-[#121212]]="sortBy() === 'createdAt'"
             [class.shadow-sm]="sortBy() === 'createdAt'"
             [class.text-gray-900]="sortBy() === 'createdAt'"
             [class.dark:text-white]="sortBy() === 'createdAt'"
@@ -391,7 +400,7 @@ export class TipsComponent implements OnInit {
         if (startIndex < totalDatabaseCount) {
           // Cette page contient au moins quelques astuces de la base de données
           const dbTipsOnPage = tips.filter(t => !t.id?.startsWith('default-'));
-          
+
           // Trier d'abord les astuces de la base de données selon le tri sélectionné
           if (this.sortBy() === 'likes') {
             dbTipsOnPage.sort((a, b) => {

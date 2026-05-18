@@ -59,7 +59,7 @@ import { IaChatbotService, ChatMessage } from '../../core/services/ia-chatbot.se
 
     <!-- Fenêtre de chat -->
     @if (isOpen()) {
-      <div class="fixed z-50 bg-white dark:bg-gray-950 border-l border-gray-200 dark:border-gray-800 md:border md:border-gray-200 md:dark:border-gray-800 flex flex-col overflow-hidden shadow-2xl transition-all duration-300 md:right-6 md:top-1/2 md:-translate-y-1/2 md:w-96 md:h-[520px] md:max-h-[calc(100vh-5rem)] md:rounded-2xl right-0 top-0 w-[85vw] max-w-[360px] h-[100dvh]"
+      <div class="fixed z-50 bg-white dark:bg-[#121212] border-l border-gray-200 dark:border-gray-800 md:border md:border-gray-200 md:dark:border-gray-800 flex flex-col overflow-hidden shadow-2xl transition-all duration-300 md:right-6 md:top-1/2 md:-translate-y-1/2 md:w-96 md:h-[520px] md:max-h-[calc(100vh-5rem)] md:rounded-2xl right-0 top-0 w-[85vw] max-w-[360px] h-[100dvh]"
            role="dialog" aria-label="Chat avec le Mentor IA">
 
         <!-- Header -->
@@ -130,7 +130,7 @@ import { IaChatbotService, ChatMessage } from '../../core/services/ia-chatbot.se
         </div>
 
         <!-- Zone de saisie -->
-        <form (ngSubmit)="send()" class="flex gap-2 p-3 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 shrink-0">
+        <form (ngSubmit)="send()" class="flex gap-2 p-3 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-[#121212] shrink-0">
           <input
             type="text"
             [(ngModel)]="inputText"

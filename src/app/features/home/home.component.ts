@@ -66,7 +66,7 @@ interface GuideSlide {
 
               <!-- Image d'illustration si disponible -->
               @if (slide.imageUrl) {
-                <div class="my-6 rounded-2xl overflow-hidden shadow-md border border-gray-200/60 dark:border-gray-800/60 bg-white dark:bg-gray-950 flex items-center justify-center p-1">
+                <div class="my-6 rounded-2xl overflow-hidden shadow-md border border-gray-200/60 dark:border-gray-800/60 bg-white dark:bg-[#121212] flex items-center justify-center p-1">
                   <img 
                     [src]="slide.imageUrl" 
                     alt="Illustration {{ slide.title }}" 
@@ -78,7 +78,7 @@ interface GuideSlide {
 
               <!-- Liste de détails enrichie -->
               @if (slide.details && slide.details.length > 0) {
-                <div class="my-6 bg-white dark:bg-gray-950 p-6 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm">
+                <div class="my-6 bg-white dark:bg-[#121212] p-6 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm">
                   <h3 class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2">
                     <span class="w-1.5 h-3 bg-blue-600 dark:bg-blue-400 rounded-sm"></span>
                     Au programme de ce chapitre :

@@ -9,11 +9,15 @@ export class AuthService {
   
   // Signal pour l'état de l'utilisateur
   currentUser = signal<User | null>(null);
+  
+  // Signal pour savoir si Firebase Auth a fini de s'initialiser
+  authInitialized = signal<boolean>(false);
 
   constructor() {
     // Écouter les changements d'état d'authentification
     authState(this.auth).subscribe((user: User | null) => {
       this.currentUser.set(user);
+      this.authInitialized.set(true);
     });
   }
 
