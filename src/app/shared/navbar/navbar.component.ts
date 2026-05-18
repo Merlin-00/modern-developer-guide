@@ -9,7 +9,7 @@ import { ThemeService } from '../../core/services/utilities/theme.service';
   imports: [CommonModule, RouterModule, LucideAngularModule],
   template: `
     <header class="sticky top-0 z-50 w-full border-b border-gray-200/50 bg-white/80 backdrop-blur-md dark:border-gray-800/50 dark:bg-[#121212]/80 transition-colors duration-300">
-      <div class="max-w-3xl mx-auto px-6 w-full">
+      <div class="max-w-3xl mx-auto px-4 md:px-6 w-full">
         <div class="flex h-16 items-center justify-between">
           <!-- Logo -->
           <div class="flex items-center">
