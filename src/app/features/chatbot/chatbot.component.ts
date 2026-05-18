@@ -70,7 +70,7 @@ import { ChatMessage } from '../../core/models/common.model';
             </div>
             <div>
               <p class="font-semibold text-sm">Mentor IA</p>
-              <p class="text-xs text-blue-100">Propulsé par Gemini</p>
+              <p class="text-xs text-blue-100">Gemini 2.5 Flash</p>
             </div>
           </div>
           <button (click)="close()" class="text-white/70 hover:text-white transition-colors cursor-pointer" aria-label="Fermer">
