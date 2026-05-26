@@ -3,12 +3,15 @@ import {
   importProvidersFrom,
   provideZonelessChangeDetection,
   isDevMode,
+  EnvironmentInjector,
+  inject,
+  runInInjectionContext,
 } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
-import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
+import { FirebaseApp, initializeApp, provideFirebaseApp } from '@angular/fire/app';
 import { getAuth, provideAuth } from '@angular/fire/auth';
-import { getFirestore, provideFirestore } from '@angular/fire/firestore';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, provideFirestore } from '@angular/fire/firestore';
 
 // Lucide icons: on utilise importProvidersFrom() pour convertir un ModuleWithProviders
 // en fournisseurs compatibles avec l'API standalone d'Angular
@@ -78,7 +81,17 @@ export const appConfig: ApplicationConfig = {
     // Initialisation de Firebase avec les clés de l'environnement
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideAuth(() => getAuth()),
-    provideFirestore(() => getFirestore()),
+    provideFirestore(() => {
+      const app = inject(FirebaseApp);
+      const injector = inject(EnvironmentInjector);
+      return runInInjectionContext(injector, () =>
+        initializeFirestore(app, {
+          localCache: persistentLocalCache({
+            tabManager: persistentMultipleTabManager(),
+          }),
+        })
+      );
+    }),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
